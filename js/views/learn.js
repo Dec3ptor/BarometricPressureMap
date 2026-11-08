@@ -28,7 +28,7 @@ export async function render(main) {
     return `<tr><td><span class="swatch" style="background:${l.color}"></span>${esc(l.label)}</td><td class="num">${range}</td><td>${esc(l.desc)}</td></tr>`;
   }).join('');
 
-  main.innerHTML = `<div class="page">
+  main.innerHTML = `<div class="page page-learn">
     <div class="page-head"><h1>Understanding barometric pressure</h1><p>A short, practical guide to what the numbers on this site mean and how to use them. Values below are shown in your chosen unit (${esc(U.label)}).</p></div>
     <div class="learn-layout">
       <nav class="learn-toc" aria-label="On this page">${SECTIONS.map(([id, t]) => `<a href="javascript:void 0" data-goto="${id}">${esc(t)}</a>`).join('')}</nav>
@@ -86,7 +86,8 @@ export async function render(main) {
 
         <h2 id="units">Units and converter</h2>
         <p>Pressure is quoted in many units. Hectopascals (hPa) and millibars (mb) are identical. Type in any box:</p>
-        <div class="converter" id="converter">${Object.entries(PRESSURE_UNITS).map(([k, u]) => `<label>${esc(u.label)}<input class="input" inputmode="decimal" data-unit="${k}" value="${fmtPressure(1013.25, k)}"></label>`).join('')}</div>
+        <div id="conv-slot"><div class="converter" id="converter">${Object.entries(PRESSURE_UNITS).map(([k, u]) => `<label>${esc(u.label)}<input class="input" inputmode="decimal" data-unit="${k}" value="${fmtPressure(1013.25, k)}"></label>`).join('')}</div></div>
+        <p class="rail-note muted small">On wide screens the converter sits in the column on the right.</p>
         <table class="ref-table"><thead><tr><th>Unit</th><th>Standard atmosphere</th><th>Used mainly by</th></tr></thead><tbody>
           <tr><td>hPa / mb</td><td class="num">1013.25</td><td>Most of the world, aviation, meteorology</td></tr>
           <tr><td>inHg</td><td class="num">29.92</td><td>United States TV weather, US aviation</td></tr>
@@ -105,6 +106,31 @@ export async function render(main) {
           <li><strong>Limits:</strong> Open-Meteo's free tier allows about 10,000 requests per day per network. The map loads up to ~180 grid points per view and caches them for an hour, so normal use stays well within that. Very fast panning across the globe can briefly hit the per-minute limit. If that happens the map keeps showing cached data and catches up a minute later.</li>
         </ul>
       </article>
+      <aside class="learn-rail" aria-label="Quick reference">
+        <section class="card">
+          <div class="card-title">Unit converter</div>
+          <div class="card-sub" style="margin-bottom:10px">Type in any box</div>
+          <div id="conv-rail"></div>
+        </section>
+        <section class="card">
+          <div class="card-title" style="margin-bottom:8px">Pressure bands <span class="muted small" style="font-weight:500">sea level</span></div>
+          <ul class="rail-bands">${LEVELS.map((l, i) => {
+            const hi = i === 0 ? null : LEVELS[i - 1].min;
+            const range = i === 0 ? `above ${p(l.min)}` : l.min === -Infinity ? `below ${p(hi)}` : `${p(l.min, { withUnit: false })}–${p(hi)}`;
+            return `<li><span class="chip" style="--dot:${l.color}">${esc(l.label)}</span><span class="num">${range}</span></li>`;
+          }).join('')}</ul>
+        </section>
+        <section class="card">
+          <div class="card-title" style="margin-bottom:8px">Trend in 3 hours</div>
+          <ul class="rail-bands">
+            <li><span>Steady</span><span class="num">under ${p(0.5)}</span></li>
+            <li><span>Slowly</span><span class="num">${p(0.5, { withUnit: false })}–${p(1.5)}</span></li>
+            <li><span>Rising / falling</span><span class="num">${p(1.6, { withUnit: false })}–${p(3.5)}</span></li>
+            <li><span>Quickly</span><span class="num">${p(3.6, { withUnit: false })}–${p(6)}</span></li>
+            <li><span>Very rapidly</span><span class="num">over ${p(6)}</span></li>
+          </ul>
+        </section>
+      </aside>
     </div>
     <footer class="footer">Map tiles © Esri, HERE, Garmin, © OpenStreetMap contributors. Weather data © Open-Meteo (CC BY 4.0).</footer>
   </div>`;
@@ -117,6 +143,11 @@ export async function render(main) {
   });
 
   const conv = main.querySelector('#converter');
+  // The converter lives in the side column on wide screens, in the text otherwise.
+  const mq = matchMedia('(min-width: 1400px)');
+  const placeConv = () => (mq.matches ? main.querySelector('#conv-rail') : main.querySelector('#conv-slot')).appendChild(conv);
+  placeConv();
+  mq.addEventListener('change', placeConv);
   conv.addEventListener('input', (e) => {
     const inp = e.target.closest('input');
     if (!inp) return;
@@ -125,4 +156,5 @@ export async function render(main) {
     const hpa = toHpa(v, inp.dataset.unit);
     conv.querySelectorAll('input').forEach((o) => { if (o !== inp) o.value = fmtPressure(hpa, o.dataset.unit); });
   });
+  return () => mq.removeEventListener('change', placeConv);
 }

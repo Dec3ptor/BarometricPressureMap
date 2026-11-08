@@ -26,6 +26,10 @@ GitHub Pages.
 - Units: hPa/mb, inHg, mmHg, kPa, psi and atm; °C/°F; km/h, mph, m/s, knots.
 - Favourites, recent places, light/dark theme, installable PWA with offline
   shell, and shareable links.
+- Layouts that make use of large screens: a two-column place dashboard
+  with a sticky map, a home page with a live map preview and world
+  snapshot, a map side panel listing highs, lows and city readings in view,
+  and a quick-reference column on the Learn page.
 
 ## Data sources
 
@@ -70,6 +74,7 @@ js/main.js              Router, search, settings, PWA install
 js/api.js               Open-Meteo / geocoding clients with caching
 js/analysis.js          Trends, levels, Zambretti, swings, alerts
 js/pressure-layer.js    Map grid fetching + canvas isobar renderer
+js/world-data.js        Shared live data for the ~170 tracked cities
 js/charts.js            Chart.js history/forecast chart
 js/gauge.js             SVG barometer dial
 js/views/*.js           Home, place, map, world and learn pages

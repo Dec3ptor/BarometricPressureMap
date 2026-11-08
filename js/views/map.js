@@ -1,6 +1,7 @@
 // Full-screen pressure map with time slider, layer toggles and tap-to-read.
 
-import { grid, createPressureLayer, addBaseLayers, sampleAt, legendGradient, LEGEND_RANGE, PAST_H, FUTURE_H } from '../pressure-layer.js';
+import { grid, createPressureLayer, addBaseLayers, sampleAt, legendGradient, pressureColor, LEGEND_RANGE, PAST_H, FUTURE_H } from '../pressure-layer.js';
+import { CITIES } from '../cities.js';
 import { settings, getLastPlace } from '../store.js';
 import { PRESSURE_UNITS, convertPressure, fmtPressure, fmtDelta, fmtWind, compass } from '../units.js';
 import { getPosition, coordName } from '../api.js';
@@ -22,6 +23,7 @@ export async function render(main, params) {
   const persist = () => { try { localStorage.setItem(LAYER_KEY, JSON.stringify(state)); } catch { /* ignore */ } };
 
   main.innerHTML = `<div class="map-view">
+    <div class="map-stage">
     <div id="pmap" aria-label="Interactive pressure map"></div>
     <div class="map-panel map-layers" role="group" aria-label="Map layers">
       <div class="row">
@@ -47,6 +49,19 @@ export async function render(main, params) {
       <div class="tlabel"><strong class="t-when">–</strong><span class="t-rel muted"></span></div>
       <input type="range" min="0" max="${PAST_H + FUTURE_H}" step="1" value="${PAST_H}" aria-label="Forecast time">
     </div>
+    </div>
+    <aside class="map-side" aria-label="Readings in view">
+      <div class="ms-head">
+        <div class="card-title">In view</div>
+        <div class="card-sub ms-when">–</div>
+      </div>
+      <div class="ms-legend"><div class="lg-title"></div><div class="lg-bar"></div><div class="lg-ticks"></div></div>
+      <div class="ms-section-title">Highs &amp; lows</div>
+      <ul class="ms-list ms-centers"></ul>
+      <div class="ms-section-title">Cities <span class="muted">sea-level pressure · 3 h change</span></div>
+      <ul class="ms-list ms-cities"></ul>
+      <p class="ms-foot muted">Tap a row to fly there. Tap anywhere on the map for a reading.</p>
+    </aside>
   </div>`;
 
   const last = getLastPlace();
@@ -129,20 +144,70 @@ export async function render(main, params) {
   function renderLegend() {
     const unit = settings.pressureUnit;
     const U = PRESSURE_UNITS[unit];
-    if (state.mode === 'none') { legendEl.style.visibility = 'hidden'; return; }
-    legendEl.style.visibility = '';
-    const [lo, hi] = LEGEND_RANGE[state.mode];
-    legendEl.querySelector('.lg-title').textContent = state.mode === 'change' ? `3-hour change (${U.label})` : `Sea-level pressure (${U.label})`;
-    legendEl.querySelector('.lg-bar').style.background = legendGradient(state.mode);
-    const ticks = state.mode === 'change' ? [-6, -3, 0, 3, 6] : [965, 990, 1013, 1036];
-    legendEl.querySelector('.lg-ticks').innerHTML = ticks.map((v) => {
-      const pos = ((v - lo) / (hi - lo)) * 100;
-      const txt = state.mode === 'change' ? fmtDelta(v, unit) : fmtPressure(v, unit, { dp: unit === 'hPa' ? 0 : U.dp });
-      return `<span style="position:absolute;left:${pos}%;transform:translateX(-50%)">${txt}</span>`;
-    }).join('');
-    legendEl.querySelector('.lg-ticks').style.position = 'relative';
-    legendEl.querySelector('.lg-ticks').style.height = '14px';
+    for (const el of main.querySelectorAll('.map-legend, .ms-legend')) {
+      if (state.mode === 'none') { el.style.visibility = 'hidden'; continue; }
+      el.style.visibility = '';
+      const [lo, hi] = LEGEND_RANGE[state.mode];
+      el.querySelector('.lg-title').textContent = state.mode === 'change' ? `3-hour change (${U.label})` : `Sea-level pressure (${U.label})`;
+      el.querySelector('.lg-bar').style.background = legendGradient(state.mode);
+      const ticks = state.mode === 'change' ? [-6, -3, 0, 3, 6] : [965, 990, 1013, 1036];
+      el.querySelector('.lg-ticks').innerHTML = ticks.map((v) => {
+        const pos = ((v - lo) / (hi - lo)) * 100;
+        const txt = state.mode === 'change' ? fmtDelta(v, unit) : fmtPressure(v, unit, { dp: unit === 'hPa' ? 0 : U.dp });
+        return `<span style="position:absolute;left:${pos}%;transform:translateX(-50%)">${txt}</span>`;
+      }).join('');
+      el.querySelector('.lg-ticks').style.position = 'relative';
+      el.querySelector('.lg-ticks').style.height = '14px';
+    }
   }
+
+  // ----- Side panel (large screens): highs, lows and city readings in view -----
+  const side = main.querySelector('.map-side');
+  let sideTimer;
+  layer.on('drawn', (e) => {
+    if (!side.offsetParent) return;
+    clearTimeout(sideTimer);
+    sideTimer = setTimeout(() => renderSide(e), 120);
+  });
+  function renderSide({ t, time, centers }) {
+    const F = layer.getField();
+    if (!F) return;
+    const unit = settings.pressureUnit;
+    const U = PRESSURE_UNITS[unit];
+    const rel = Math.round((time - Date.now()) / HOUR);
+    side.querySelector('.ms-when').textContent = `${fmtDateTime(time)} · ${Math.abs(rel) < 1 ? 'now' : rel > 0 ? `+${rel} h forecast` : `${rel} h`}`;
+    const bounds = map.getBounds();
+    const row = (lat, lon, html) => `<li><button type="button" data-fly="${lat.toFixed(3)},${lon.toFixed(3)}">${html}</button></li>`;
+    side.querySelector('.ms-centers').innerHTML = centers.length
+      ? centers.slice().sort((a, b) => a.v - b.v).map((c) => {
+        const ll = c.latlng.wrap();
+        const kind = c.type === 'H' ? 'High' : 'Low';
+        return row(ll.lat, ll.lng, `<span class="ms-hl ${c.type === 'H' ? 'h' : 'l'}">${c.type}</span><span class="ms-name">${kind} near ${esc(nearestCity(ll.lat, ll.lng))}</span><span class="ms-v num">${fmtPressure(c.v, unit)}</span>`);
+      }).join('')
+      : '<li class="ms-empty muted">No high or low centres in view. Zoom out to see more.</li>';
+    const P = F.p[t], P3 = t >= 3 ? F.p[t - 3] : null;
+    const inView = CITIES.filter((c) => bounds.contains([c.lat, c.lon]) || bounds.contains([c.lat, c.lon + 360]) || bounds.contains([c.lat, c.lon - 360]))
+      .map((c) => {
+        const v = sampleAt(F, P, c.lat, c.lon);
+        const d = P3 ? v - sampleAt(F, P3, c.lat, c.lon) : null;
+        return { ...c, v, d };
+      })
+      .filter((c) => !Number.isNaN(c.v))
+      .sort((a, b) => b.v - a.v)
+      .slice(0, 60);
+    side.querySelector('.ms-cities').innerHTML = inView.length
+      ? inView.map((c) => {
+        const cls = c.d == null || Number.isNaN(c.d) || Math.abs(c.d) < 0.5 ? 'steady' : c.d > 0 ? 'rise' : 'fall';
+        return row(c.lat, c.lon, `<span class="ms-dot" style="background:${pressureColor(c.v)}"></span><span class="ms-name">${esc(c.n)}<small>${esc(c.c)}</small></span><span class="ms-v num">${fmtPressure(c.v, unit)}</span><span class="ms-d num ${cls}">${c.d == null || Number.isNaN(c.d) ? '' : fmtDelta(c.d, unit)}</span>`);
+      }).join('')
+      : '<li class="ms-empty muted">No tracked cities in view.</li>';
+  }
+  side.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-fly]');
+    if (!b) return;
+    const [la, lo] = b.dataset.fly.split(',').map(Number);
+    map.flyTo([la, lo], Math.max(map.getZoom(), 5), { duration: 0.8 });
+  });
   main.querySelector('[data-legend]').onclick = () => legendEl.classList.toggle('show-sm');
 
   // ----- Data loading -----
@@ -227,6 +292,17 @@ export async function render(main, params) {
     unbase();
     map.remove();
   };
+}
+
+// Name of the closest tracked city, for labelling highs and lows.
+function nearestCity(lat, lon) {
+  let best = null, bd = Infinity;
+  for (const c of CITIES) {
+    const dl = (((c.lon - lon + 540) % 360) - 180) * Math.cos((lat * Math.PI) / 180);
+    const d = (c.lat - lat) ** 2 + dl ** 2;
+    if (d < bd) { bd = d; best = c; }
+  }
+  return bd < 30 ** 2 ? best.n : coordName(lat, lon);
 }
 
 function debounce(fn, ms) {

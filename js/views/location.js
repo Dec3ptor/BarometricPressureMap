@@ -5,7 +5,7 @@ import { fetchForecast, reverseGeocode, coordName } from '../api.js';
 import { settings, updateSettings, isFavorite, toggleFavorite, addRecent, setLastPlace } from '../store.js';
 import { PRESSURE_UNITS, convertPressure, fmtPressure, fmtDelta, fmtTemp, fmtWind, fmtPrecip, compass, convertTemp, convertWind, TEMP_UNITS, WIND_UNITS } from '../units.js';
 import { HOUR, indexAt, valueAt, changeOver, tendency, level, zambretti, windowStats, swingLevel, SWING_LABELS, fishing, alerts } from '../analysis.js';
-import { esc, icon, trendIcon, toast, fmtClock, fmtDayFull, fmtWeekday, fmtDayHour, fmtDateTime, relTime, dayKey, placeHref } from '../ui.js';
+import { esc, icon, trendIcon, toast, fmtClock, fmtHour, fmtDayFull, fmtWeekday, fmtDayHour, fmtDateTime, relTime, dayKey, placeHref } from '../ui.js';
 import { wxIcon, wxText } from '../wx.js';
 import { gaugeSVG, animateGauge } from '../gauge.js';
 import { createPressureChart } from '../charts.js';
@@ -69,7 +69,7 @@ export async function render(main, params, { isActive }) {
 }
 
 function skeleton(place) {
-  return `<div class="page">
+  return `<div class="page page-wide">
     <div class="loc-head"><div><h1>${esc(place.name || 'Loading…')}</h1><div class="loc-meta"><span class="loc-region">${esc(place.region)}</span></div></div></div>
     <div class="card"><div class="skeleton" style="height:210px"></div></div>
     <div class="card" style="margin-top:16px"><div class="skeleton" style="height:320px"></div></div>
@@ -137,7 +137,7 @@ function buildView(main, place, data, cleanups) {
   }).filter((d) => d.s);
   const todayIdx = Math.max(0, days.findIndex((d) => d.key === todayKey));
 
-  main.innerHTML = `<div class="page">
+  main.innerHTML = `<div class="page page-wide">
     <div class="loc-head">
       <div>
         <div class="now-label">${place.here ? `${icon.locate.replace('<svg', '<svg width="14" height="14" style="display:inline;vertical-align:-2px;fill:none;stroke:currentColor;stroke-width:2"')} Your location` : 'Barometric pressure'}</div>
@@ -151,11 +151,12 @@ function buildView(main, place, data, cleanups) {
       </div>
     </div>
 
-    ${staleHtml}
+    <div class="dash">
+    ${staleHtml ? `<div class="dash-stale">${staleHtml}</div>` : ''}
 
-    <section class="card hero-card" aria-label="Current pressure">
-      <div>
-        <div class="now-label">Now · ${mode === 'station' ? 'station pressure' : 'sea-level pressure'} <span class="chip" style="background:${lvl.color}22;color:${lvl.color}">${esc(lvl.label)}</span></div>
+    <section class="card hero-card dash-hero" aria-label="Current pressure">
+      <div class="hero-main">
+        <div class="now-label">Now · ${mode === 'station' ? 'station pressure' : 'sea-level pressure'} <span class="chip" style="--dot:${lvl.color}">${esc(lvl.label)}</span></div>
         <div class="big-value"><span class="v">${fmtPressure(nowP, unit)}</span><span class="u">${U.label}</span></div>
         <div class="trend-line ${tend.key}">
           <span class="trend-arrow ${tend.key}">${trendIcon(tend)}</span>
@@ -173,11 +174,32 @@ function buildView(main, place, data, cleanups) {
         ${gaugeSVG({ now: nowP, past: past24, future: fut24, unit, mode })}
         <div class="gauge-legend"><span><i style="background:#c79a2b"></i>24 h ago</span><span><i style="background:var(--accent)"></i>In 24 h (forecast)</span></div>
       </div>
+      <div class="hourly-wrap">
+        <div class="hourly-label">Next 24 hours</div>
+        <div class="hourly" id="hourly"></div>
+      </div>
     </section>
 
-    ${notesHtml}
 
-    <section class="card" style="margin-top:16px" aria-label="Pressure chart">
+    <section class="card dash-cond" aria-label="Current conditions">
+      <div class="card-head"><div><div class="card-title">Current conditions</div><div class="card-sub">Updated ${relTime(data.fetchedAt)}</div></div></div>
+      <div class="wx-now">${wxIcon(cur.wc, cur.isDay, 'wx-icon')}<div><div class="t">${fmtTemp(cur.temp, settings.tempUnit)}</div><div class="desc">${esc(wxText(cur.wc))} · feels like ${fmtTemp(cur.feels, settings.tempUnit)}</div></div></div>
+      <div class="conditions">
+        ${cond(icon.gauge, 'Sea-level pressure', fmtPressure(cur.msl, unit, { withUnit: true }), 'used on weather maps')}
+        ${cond(icon.mountain, 'Station pressure', fmtPressure(cur.sp, unit, { withUnit: true }), data.elevation != null ? `at ${Math.round(data.elevation)} m` : '')}
+        ${cond(icon.drop, 'Humidity', cur.rh != null ? `${Math.round(cur.rh)}%` : '–', 'relative humidity')}
+        ${cond(icon.thermo, 'Dew point', fmtTemp(cur.dew, settings.tempUnit), cur.temp != null && cur.dew != null && cur.temp - cur.dew < 2.5 ? 'fog or mist likely' : 'moisture in the air')}
+        ${cond(icon.wind, 'Wind', `${fmtWind(cur.ws, settings.windUnit)}`, `${compass(cur.wd)} · gusts ${fmtWind(cur.wg, settings.windUnit)}`)}
+        ${cond(icon.cloud, 'Cloud cover', cur.cc != null ? `${Math.round(cur.cc)}%` : '–', '')}
+        ${cond(icon.drop, 'Precipitation', fmtPrecip(cur.pr, settings.precipUnit), 'last 15 min')}
+        ${data.daily.sunrise[todayIdxIn(data, tz)] ? cond(icon.sunrise, 'Sunrise / sunset', `${fmtClock(data.daily.sunrise[todayIdxIn(data, tz)], tz)}`, `sets ${fmtClock(data.daily.sunset[todayIdxIn(data, tz)], tz)}`) : ''}
+      </div>
+      <p class="today-sum">Today: high <strong>${fmtTemp(data.daily.tmax[todayIdxIn(data, tz)], settings.tempUnit)}</strong>, low <strong>${fmtTemp(data.daily.tmin[todayIdxIn(data, tz)], settings.tempUnit)}</strong> · ${esc(wxText(data.daily.wc[todayIdxIn(data, tz)]).toLowerCase())} · rain chance ${data.daily.ppmax[todayIdxIn(data, tz)] ?? '–'}% · wind up to ${fmtWind(data.daily.wsmax[todayIdxIn(data, tz)], settings.windUnit)}</p>
+    </section>
+
+    ${notesHtml ? `<div class="dash-alerts">${notesHtml}</div>` : ''}
+
+    <section class="card dash-chart" aria-label="Pressure chart">
       <div class="card-head">
         <div><div class="card-title">History &amp; forecast</div><div class="card-sub">Past 14 days and next 16 days, hourly. Tap or hover for values.</div></div>
         <div class="spacer"></div>
@@ -187,7 +209,7 @@ function buildView(main, place, data, cleanups) {
         <div class="segmented" role="group" aria-label="Overlay" data-ctl="overlay">${Object.entries(OVERLAYS).map(([k, label]) => `<button type="button" data-v="${k}" aria-pressed="${k === (settings.chartOverlay || 'none')}">${label}</button>`).join('')}</div>
         <div class="segmented" role="group" aria-label="Pressure type" data-ctl="mode"><button type="button" data-v="msl" aria-pressed="${mode === 'msl'}">Sea level</button><button type="button" data-v="station" aria-pressed="${mode === 'station'}">Station</button></div>
       </div>
-      <div class="chart-box" style="height:${window.innerWidth < 640 ? 330 : 390}px"><canvas id="pchart" aria-label="Pressure history and forecast chart" role="img"></canvas></div>
+      <div class="chart-box main"><canvas id="pchart" aria-label="Pressure history and forecast chart" role="img"></canvas></div>
       <div class="chart-caption">
         <span><i></i>Observed / analysed</span>
         <span><i class="dash"></i>Forecast</span>
@@ -196,7 +218,8 @@ function buildView(main, place, data, cleanups) {
       </div>
     </section>
 
-    <h2 class="section-title">Outlook</h2>
+    <section class="dash-outlook" aria-label="Outlook">
+    <h2 class="section-title" style="margin-top:8px">Outlook</h2>
     <div class="outlook-grid">
       ${zam ? `<section class="card outlook">
         <div class="o-kicker">${icon.gauge} Barometer says</div>
@@ -207,10 +230,10 @@ function buildView(main, place, data, cleanups) {
       <section class="card outlook">
         <div class="o-kicker">${icon.heart} Pressure swings</div>
         <div class="o-title">${SWING_LABELS[swingLevel(next24)]} next 24 h</div>
-        <div class="swing-days">${days.slice(todayIdx, todayIdx + 5).map((d) => {
+        <ul class="swing-list" aria-label="Pressure swing by day">${days.slice(todayIdx, todayIdx + 5).map((d) => {
           const l = swingLevel(d.s);
-          return `<div class="swing-day l${l}" title="Range ${fmtPressure(d.s.range, unit)} ${U.label}"><b>${d.key === todayKey ? 'Today' : esc(fmtWeekday(d.t + 12 * HOUR, tz))}</b>${SWING_LABELS[l]}</div>`;
-        }).join('')}</div>
+          return `<li><span class="sw-day">${d.key === todayKey ? 'Today' : esc(fmtWeekday(d.t + 12 * HOUR, tz))}</span>${meter(l)}<span class="sw-label">${SWING_LABELS[l]}</span><span class="sw-range num">${fmtPressure(d.s.range, unit)} ${U.label}</span></li>`;
+        }).join('')}</ul>
         <p>${swingText(next24, unit)}</p>
         <div class="o-foot">For people sensitive to weather: migraines, joint pain, sinus pressure. This is a heads-up, not medical advice.</div>
       </section>
@@ -227,37 +250,25 @@ function buildView(main, place, data, cleanups) {
         <p>${next48.maxDrop < -0.5 ? `Fastest fall ${fmtDelta(next48.maxDrop, unit)} per 3 h, by ${esc(fmtDayHour(next48.tDrop, tz))}. ` : ''}${next48.maxRise > 0.5 ? `Fastest rise ${fmtDelta(next48.maxRise, unit)} per 3 h, by ${esc(fmtDayHour(next48.tRise, tz))}.` : ''}</p>` : '<p>No forecast data.</p>'}
       </section>
     </div>
+    </section>
 
-    <h2 class="section-title">Day by day <span class="muted">${mode === 'station' ? 'station' : 'sea-level'} pressure, ${U.label}</span></h2>
-    <section class="card">
+    <section class="card dash-daily" aria-label="Day by day">
+      <div class="card-head"><div><div class="card-title">Day by day</div><div class="card-sub">${mode === 'station' ? 'Station' : 'Sea-level'} pressure, ${U.label}</div></div></div>
       <div class="table-scroll"><table class="daily" id="daily"></table></div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         <button class="btn btn-sm" type="button" id="toggle-past">Show past 2 weeks</button>
       </div>
     </section>
 
-    <h2 class="section-title">Current conditions <span class="muted">updated ${relTime(data.fetchedAt)}</span></h2>
-    <section class="card">
-      <div class="wx-now">${wxIcon(cur.wc, cur.isDay, 'wx-icon')}<div><div class="t">${fmtTemp(cur.temp, settings.tempUnit)}</div><div class="desc">${esc(wxText(cur.wc))} · feels like ${fmtTemp(cur.feels, settings.tempUnit)}</div></div></div>
-      <div class="conditions">
-        ${cond(icon.gauge, 'Sea-level pressure', fmtPressure(cur.msl, unit, { withUnit: true }), 'used on weather maps')}
-        ${cond(icon.mountain, 'Station pressure', fmtPressure(cur.sp, unit, { withUnit: true }), data.elevation != null ? `at ${Math.round(data.elevation)} m` : '')}
-        ${cond(icon.drop, 'Humidity', cur.rh != null ? `${Math.round(cur.rh)}%` : '–', `dew point ${fmtTemp(cur.dew, settings.tempUnit)}`)}
-        ${cond(icon.wind, 'Wind', `${fmtWind(cur.ws, settings.windUnit)}`, `${compass(cur.wd)} · gusts ${fmtWind(cur.wg, settings.windUnit)}`)}
-        ${cond(icon.cloud, 'Cloud cover', cur.cc != null ? `${Math.round(cur.cc)}%` : '–', '')}
-        ${cond(icon.drop, 'Precipitation', fmtPrecip(cur.pr, settings.precipUnit), 'last 15 min')}
-        ${data.daily.sunrise[todayIdxIn(data, tz)] ? cond(icon.sunrise, 'Sunrise / sunset', `${fmtClock(data.daily.sunrise[todayIdxIn(data, tz)], tz)}`, `sets ${fmtClock(data.daily.sunset[todayIdxIn(data, tz)], tz)}`) : ''}
-      </div>
-    </section>
-
-    <h2 class="section-title">Pressure map <span class="muted">isobars around ${esc(place.name || 'this place')}</span></h2>
-    <section class="card">
+    <section class="card dash-map" aria-label="Pressure map">
+      <div class="card-head"><div><div class="card-title">Pressure map</div><div class="card-sub">Isobars around ${esc(place.name || 'this place')}</div></div></div>
       <div class="mini-map" id="minimap"><div class="skeleton" style="height:100%"></div></div>
       <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center">
         <a class="btn btn-sm btn-primary" href="#/map?lat=${place.lat.toFixed(3)}&lon=${place.lon.toFixed(3)}&z=5">${icon.map} Open full map</a>
         <span class="muted small">Blue = high pressure, red = low. Lines join points of equal pressure.</span>
       </div>
     </section>
+    </div>
 
     <footer class="footer">Weather data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (national weather service models), updated hourly. Times shown in ${esc(tz)}.</footer>
   </div>`;
@@ -335,13 +346,32 @@ function buildView(main, place, data, cleanups) {
         <td class="hide-sm num">${fmtTemp(data.daily.tmax[d.i], settings.tempUnit)} <span class="muted">${fmtTemp(data.daily.tmin[d.i], settings.tempUnit)}</span></td>
         <td><div class="range-cell"><span class="lo num">${fmtPressure(d.s.min, unit)}</span><span class="range-bar"><i style="left:${pct(d.s.min).toFixed(1)}%;right:${(100 - pct(d.s.max)).toFixed(1)}%"></i></span><span class="hi num">${fmtPressure(d.s.max, unit)}</span></div></td>
         <td class="num ${ncls}" style="font-weight:650;white-space:nowrap">${fmtDelta(net, unit)}</td>
-        <td class="hide-sm"><span class="chip ${l === 3 ? 'fall' : l === 2 ? 'warn' : 'good'}">${SWING_LABELS[l]}</span></td>
+        <td class="hide-sm"><span class="swing-cell">${meter(l)}${SWING_LABELS[l]}</span></td>
       </tr>`;
     }).join('')}</tbody>`;
     main.querySelector('#toggle-past').textContent = showPast ? 'Hide past days' : 'Show past 2 weeks';
   };
   renderDaily();
   main.querySelector('#toggle-past').onclick = () => { showPast = !showPast; renderDaily(); };
+
+  // ----- Next 24 hours strip -----
+  const hourlyEl = main.querySelector('#hourly');
+  if (hourlyEl) {
+    const i0 = indexAt(times, now);
+    const cells = [];
+    for (let k = 1; k <= 8; k++) {
+      const i = i0 + k * 3;
+      if (i >= times.length) break;
+      const t = times[i];
+      const di = data.daily.time.findIndex((d, n) => t >= d && t < (data.daily.time[n + 1] ?? Infinity));
+      const rise = data.daily.sunrise[di], set = data.daily.sunset[di];
+      const isDay = rise && set ? t >= rise && t < set : 1;
+      const d3 = series[i] != null && series[i - 3] != null ? series[i] - series[i - 3] : null;
+      const cls = d3 == null || Math.abs(d3) < 0.5 ? 'steady' : d3 > 0 ? 'rise' : 'fall';
+      cells.push(`<div class="hr"><span class="hr-t">${esc(fmtHour(t, tz))}</span>${wxIcon(H.wc[i], isDay ? 1 : 0)}<span class="hr-temp">${fmtTemp(H.temp[i], settings.tempUnit)}</span><span class="hr-p num">${fmtPressure(series[i], unit)}</span><span class="hr-d num ${cls}">${fmtDelta(d3, unit)}</span></div>`);
+    }
+    hourlyEl.innerHTML = cells.join('');
+  }
 
   // ----- Header actions -----
   const favBtn = main.querySelector('.fav-btn');
@@ -402,6 +432,11 @@ function todayIdxIn(data, tz) {
   const k = dayKey(Date.now(), tz);
   const i = data.daily.time.findIndex((t) => dayKey(t + 12 * HOUR, tz) === k);
   return i < 0 ? 0 : i;
+}
+
+// Three-segment swing meter (1 = calm, 2 = moderate, 3 = big swing).
+function meter(l) {
+  return `<span class="meter l${l}" aria-hidden="true"><i></i><i></i><i></i></span>`;
 }
 
 function cond(ic, k, val, sub) {
