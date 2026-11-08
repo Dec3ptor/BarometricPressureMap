@@ -1,0 +1,20 @@
+{
+  "name": "Barometric Pressure Map",
+  "short_name": "PressureMap",
+  "description": "Barometric pressure history, forecast, trend and a live isobar map for anywhere in the world.",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d1320",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Pressure map", "url": "./#/map", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "World rankings", "url": "./#/world", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
