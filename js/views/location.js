@@ -154,8 +154,8 @@ function buildView(main, place, data, cleanups) {
     ${staleHtml}
 
     <section class="card hero-card" aria-label="Current pressure">
-      <div>
-        <div class="now-label">Now · ${mode === 'station' ? 'station pressure' : 'sea-level pressure'} <span class="chip" style="background:${lvl.color}22;color:${lvl.color}">${esc(lvl.label)}</span></div>
+      <div class="hero-main">
+        <div class="now-label">Now · ${mode === 'station' ? 'station pressure' : 'sea-level pressure'} <span class="chip" style="--dot:${lvl.color}">${esc(lvl.label)}</span></div>
         <div class="big-value"><span class="v">${fmtPressure(nowP, unit)}</span><span class="u">${U.label}</span></div>
         <div class="trend-line ${tend.key}">
           <span class="trend-arrow ${tend.key}">${trendIcon(tend)}</span>
@@ -207,10 +207,10 @@ function buildView(main, place, data, cleanups) {
       <section class="card outlook">
         <div class="o-kicker">${icon.heart} Pressure swings</div>
         <div class="o-title">${SWING_LABELS[swingLevel(next24)]} next 24 h</div>
-        <div class="swing-days">${days.slice(todayIdx, todayIdx + 5).map((d) => {
+        <ul class="swing-list" aria-label="Pressure swing by day">${days.slice(todayIdx, todayIdx + 5).map((d) => {
           const l = swingLevel(d.s);
-          return `<div class="swing-day l${l}" title="Range ${fmtPressure(d.s.range, unit)} ${U.label}"><b>${d.key === todayKey ? 'Today' : esc(fmtWeekday(d.t + 12 * HOUR, tz))}</b>${SWING_LABELS[l]}</div>`;
-        }).join('')}</div>
+          return `<li><span class="sw-day">${d.key === todayKey ? 'Today' : esc(fmtWeekday(d.t + 12 * HOUR, tz))}</span>${meter(l)}<span class="sw-label">${SWING_LABELS[l]}</span><span class="sw-range num">${fmtPressure(d.s.range, unit)} ${U.label}</span></li>`;
+        }).join('')}</ul>
         <p>${swingText(next24, unit)}</p>
         <div class="o-foot">For people sensitive to weather: migraines, joint pain, sinus pressure. This is a heads-up, not medical advice.</div>
       </section>
@@ -335,7 +335,7 @@ function buildView(main, place, data, cleanups) {
         <td class="hide-sm num">${fmtTemp(data.daily.tmax[d.i], settings.tempUnit)} <span class="muted">${fmtTemp(data.daily.tmin[d.i], settings.tempUnit)}</span></td>
         <td><div class="range-cell"><span class="lo num">${fmtPressure(d.s.min, unit)}</span><span class="range-bar"><i style="left:${pct(d.s.min).toFixed(1)}%;right:${(100 - pct(d.s.max)).toFixed(1)}%"></i></span><span class="hi num">${fmtPressure(d.s.max, unit)}</span></div></td>
         <td class="num ${ncls}" style="font-weight:650;white-space:nowrap">${fmtDelta(net, unit)}</td>
-        <td class="hide-sm"><span class="chip ${l === 3 ? 'fall' : l === 2 ? 'warn' : 'good'}">${SWING_LABELS[l]}</span></td>
+        <td class="hide-sm"><span class="swing-cell">${meter(l)}${SWING_LABELS[l]}</span></td>
       </tr>`;
     }).join('')}</tbody>`;
     main.querySelector('#toggle-past').textContent = showPast ? 'Hide past days' : 'Show past 2 weeks';
@@ -402,6 +402,11 @@ function todayIdxIn(data, tz) {
   const k = dayKey(Date.now(), tz);
   const i = data.daily.time.findIndex((t) => dayKey(t + 12 * HOUR, tz) === k);
   return i < 0 ? 0 : i;
+}
+
+// Three-segment swing meter (1 = calm, 2 = moderate, 3 = big swing).
+function meter(l) {
+  return `<span class="meter l${l}" aria-hidden="true"><i></i><i></i><i></i></span>`;
 }
 
 function cond(ic, k, val, sub) {

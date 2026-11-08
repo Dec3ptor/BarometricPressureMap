@@ -33,7 +33,7 @@ export async function render(main) {
       <div class="hero-search">
         <button type="button" class="fake-input" data-action="search">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          Search a city, town or postcode
+          <span>Search a city or town</span>
         </button>
         <button type="button" class="btn btn-primary" data-action="locate">${icon.locate} Use my location</button>
       </div>

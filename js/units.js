@@ -52,7 +52,8 @@ export function convertTemp(c, unit) {
 export function fmtTemp(c, unit, { withUnit = true } = {}) {
   const v = convertTemp(c, unit);
   if (v == null) return '–';
-  return `${Math.round(v)}${withUnit ? '°' : ''}`;
+  const n = Math.round(v);
+  return `${n < 0 ? '−' : ''}${Math.abs(n)}${withUnit ? '°' : ''}`;
 }
 export function convertWind(kmh, unit) {
   if (kmh == null) return null;

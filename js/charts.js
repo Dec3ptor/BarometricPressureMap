@@ -162,17 +162,43 @@ export function createPressureChart(canvas, cfg) {
           const y = chart.scales.y;
           const yTop = y.getPixelForValue(band[1]), yBot = y.getPixelForValue(band[0]);
           const top = Math.max(y.top, yTop), bot = Math.min(y.bottom, yBot);
+          chart.$band = null;
           if (bot > top) {
-            ctx.fillStyle = alpha(C.accent, 0.06);
+            ctx.fillStyle = alpha(C.muted, 0.08);
             ctx.fillRect(a.left, top, a.width, bot - top);
-            if (bot - top > 22) {
-              ctx.fillStyle = alpha(C.accent, 0.55);
-              ctx.font = '600 10px InterVariable, system-ui, sans-serif';
-              ctx.textBaseline = 'top';
-              ctx.fillText('NORMAL RANGE', a.left + 6, top + 5);
-            }
+            // Dashed edges where the band boundary is in view
+            ctx.strokeStyle = alpha(C.muted, 0.45);
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            if (yTop >= y.top) { ctx.moveTo(a.left, yTop); ctx.lineTo(a.right, yTop); }
+            if (yBot <= y.bottom) { ctx.moveTo(a.left, yBot); ctx.lineTo(a.right, yBot); }
+            ctx.stroke();
+            ctx.setLineDash([]);
+            if (bot - top > 24) chart.$band = { top };
           }
         }
+        ctx.restore();
+      },
+      // Label drawn after the data so the area fill never covers it.
+      afterDatasetsDraw(chart) {
+        if (!chart.$band) return;
+        const { ctx, chartArea: a } = chart;
+        ctx.save();
+        ctx.font = '650 10px InterVariable, system-ui, sans-serif';
+        const text = 'Normal range';
+        const w = ctx.measureText(text).width + 12;
+        const x = a.left + 6, y = chart.$band.top + 5;
+        ctx.fillStyle = alpha(C.surface.startsWith('#') ? C.surface : '#ffffff', 0.92);
+        ctx.strokeStyle = C.border;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, w, 16, 8); else ctx.rect(x, y, w, 16);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = C.muted;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + 6, y + 8.5);
         ctx.restore();
       },
     },
