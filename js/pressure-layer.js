@@ -466,6 +466,14 @@ export function createPressureLayer(opts = {}) {
       const centers = o.centers ? findCenters(map, F, P, size) : [];
       if (o.cities) drawCities(ctx, map, F, P, size, dark, halo, centers);
       drawCenters(ctx, centers, dark, halo);
+
+      // Let the page know what's on screen (used by the map side panel).
+      const allCenters = o.centers ? centers : findCenters(map, F, P, size);
+      this.fire('drawn', {
+        t,
+        time: F.times[t],
+        centers: allCenters.map((c) => ({ type: c.type, v: c.v, latlng: map.containerPointToLatLng([c.x, c.y]) })),
+      });
     },
   }))(opts);
 }
