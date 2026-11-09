@@ -4,7 +4,8 @@
 import { fetchForecast, reverseGeocode, coordName } from '../api.js';
 import { settings, updateSettings, isFavorite, toggleFavorite, addRecent, setLastPlace } from '../store.js';
 import { PRESSURE_UNITS, convertPressure, fmtPressure, fmtDelta, fmtTemp, fmtWind, fmtPrecip, compass, convertTemp, convertWind, TEMP_UNITS, WIND_UNITS } from '../units.js';
-import { HOUR, indexAt, valueAt, changeOver, tendency, level, zambretti, windowStats, swingLevel, SWING_LABELS, fishing, alerts } from '../analysis.js';
+import { HOUR, indexAt, valueAt, changeOver, tendency, level, zambretti, windowStats, swingLevel, SWING_LABELS, alerts } from '../analysis.js';
+import { airDensity, densityAltitude, pressureAltitude, boilingPoint, oxygenPercent, vapourPressure, absoluteHumidity, mixingRatio, cloudBase, tideAmplitude, tideAt, wmoTendency } from '../physics.js';
 import { esc, icon, trendIcon, toast, fmtClock, fmtHour, fmtDayFull, fmtWeekday, fmtDayHour, fmtDateTime, relTime, dayKey, placeHref } from '../ui.js';
 import { wxIcon, wxText } from '../wx.js';
 import { gaugeSVG, animateGauge } from '../gauge.js';
@@ -99,7 +100,15 @@ function buildView(main, place, data, cleanups) {
   const next24 = windowStats(times, series, now, now + 24 * HOUR);
   const next48 = windowStats(times, series, now, now + 48 * HOUR);
   const zam = zambretti(nowMsl, changeOver(times, msl, now, 3));
-  const fish = fishing(lvl, tend, next24?.net);
+  // Science panel inputs (current conditions at the model grid point)
+  const wmo = wmoTendency([3, 2, 1, 0].map((h) => valueAt(times, msl, now - h * HOUR)));
+  const dp3msl = changeOver(times, msl, now, 3);
+  const dp24msl = changeOver(times, msl, now, 24);
+  const tideAmp = tideAmplitude(place.lat);
+  const tideDelta = tideAt(now, place.lat, place.lon) - tideAt(now - 3 * HOUR, place.lat, place.lon);
+  const haveAir = cur.sp != null && cur.temp != null;
+  const rho = haveAir ? airDensity(cur.sp, cur.temp, cur.dew) : null;
+  const e = cur.dew != null ? vapourPressure(cur.dew) : null;
   const notes = alerts(times, msl, now, place.lat);
   const fav = isFavorite(place);
 
@@ -119,8 +128,8 @@ function buildView(main, place, data, cleanups) {
   const notesHtml = notes.map((n) => {
     const when = n.t ? ` around <strong style="display:inline">${esc(fmtDayHour(n.t, tz))}</strong>` : '';
     let text = n.text;
-    if (!text && n.kind === 'drop') text = `Pressure is forecast to fall ${fmtDelta(n.d, unit, { withUnit: true })} in three hours${when}. Expect wind and unsettled weather. If pressure changes affect your health, plan ahead.`;
-    if (!text && n.kind === 'rise') text = `A rise of ${fmtDelta(n.d, unit, { withUnit: true })} in three hours is forecast${when}, typically clearing weather behind a front, often with gusty winds.`;
+    if (!text && n.kind === 'drop') text = `Forecast fall of ${fmtDelta(n.d, unit, { withUnit: true })} in three hours${when}. Falls this fast usually mean an approaching front or a deepening low, with strengthening wind.`;
+    if (!text && n.kind === 'rise') text = `Forecast rise of ${fmtDelta(n.d, unit, { withUnit: true })} in three hours${when}. Rapid rises usually follow a cold front and often bring gusty wind.`;
     if (!text && n.kind === 'swing') text = `Pressure will move through a ${fmtPressure(n.d, unit)} ${U.label} range over the next day.`;
     return `<div class="alert ${n.level === 'info' ? 'info' : ''}">${n.level === 'info' ? icon.info : icon.alert}<div><strong>${esc(n.title)}</strong>${text}</div></div>`;
   }).join('');
@@ -165,7 +174,7 @@ function buildView(main, place, data, cleanups) {
           <span>${esc(tend.label)}</span>
           <span class="muted small num">${fmtDelta(dp3, unit, { withUnit: true })} in 3 h</span>
         </div>
-        <p class="muted small" style="margin:10px 0 0;max-width:46ch">${esc(lvl.desc)}</p>
+        <p class="muted small" style="margin:10px 0 0;max-width:52ch">${fmtDelta(nowMsl - 1013.25, unit, { withUnit: true })} relative to the standard atmosphere (${fmtPressure(1013.25, unit, { withUnit: true })}) · ${esc(lvl.label.toLowerCase())} band: ${esc(lvl.desc.toLowerCase())}.</p>
         <div class="mini-stats">
           <div class="mini-stat"><div class="k">24 h ago</div><div class="val">${fmtPressure(past24, unit)}</div>${deltaChip(past24 != null ? nowP - past24 : null)}</div>
           <div class="mini-stat"><div class="k">In 24 h</div><div class="val">${fmtPressure(fut24, unit)}</div>${deltaChip(fut24 != null ? fut24 - nowP : null)}</div>
@@ -187,14 +196,14 @@ function buildView(main, place, data, cleanups) {
       <div class="card-head"><div><div class="card-title">Current conditions</div><div class="card-sub">Updated ${relTime(data.fetchedAt)}</div></div></div>
       <div class="wx-now">${wxIcon(cur.wc, cur.isDay, 'wx-icon')}<div><div class="t">${fmtTemp(cur.temp, settings.tempUnit)}</div><div class="desc">${esc(wxText(cur.wc))} · feels like ${fmtTemp(cur.feels, settings.tempUnit)}</div></div></div>
       <div class="conditions">
-        ${cond(icon.gauge, 'Sea-level pressure', fmtPressure(cur.msl, unit, { withUnit: true }), 'used on weather maps')}
-        ${cond(icon.mountain, 'Station pressure', fmtPressure(cur.sp, unit, { withUnit: true }), data.elevation != null ? `at ${Math.round(data.elevation)} m` : '')}
-        ${cond(icon.drop, 'Humidity', cur.rh != null ? `${Math.round(cur.rh)}%` : '–', 'relative humidity')}
-        ${cond(icon.thermo, 'Dew point', fmtTemp(cur.dew, settings.tempUnit), cur.temp != null && cur.dew != null && cur.temp - cur.dew < 2.5 ? 'fog or mist likely' : 'moisture in the air')}
-        ${cond(icon.wind, 'Wind', `${fmtWind(cur.ws, settings.windUnit)}`, `${compass(cur.wd)} · gusts ${fmtWind(cur.wg, settings.windUnit)}`)}
-        ${cond(icon.cloud, 'Cloud cover', cur.cc != null ? `${Math.round(cur.cc)}%` : '–', '')}
+        ${cond(icon.gauge, 'Sea-level (QNH)', fmtPressure(cur.msl, unit, { withUnit: true }), `${fmtPressure(cur.msl, 'inHg')} inHg`)}
+        ${cond(icon.mountain, 'Station (QFE)', fmtPressure(cur.sp, unit, { withUnit: true }), data.elevation != null ? `at ${Math.round(data.elevation)} m model elevation` : '')}
+        ${cond(icon.drop, 'Humidity', cur.rh != null ? `${Math.round(cur.rh)}%` : '–', e != null ? `vapour pressure ${fmtPressure(e, unit, { withUnit: true })}` : '')}
+        ${cond(icon.thermo, 'Dew point', fmtTemp(cur.dew, settings.tempUnit), cur.temp != null && cur.dew != null ? `spread ${fmtTempDelta(cur.temp - cur.dew)}` : '')}
+        ${cond(icon.wind, 'Wind', `${fmtWind(cur.ws, settings.windUnit)}`, `from ${compass(cur.wd)} (${Math.round(cur.wd ?? 0)}°) · gusts ${fmtWind(cur.wg, settings.windUnit)}`)}
+        ${cond(icon.cloud, 'Cloud cover', cur.cc != null ? `${Math.round(cur.cc)}%` : '–', cur.cc != null ? `${Math.round((cur.cc / 100) * 8)} oktas` : '')}
         ${cond(icon.drop, 'Precipitation', fmtPrecip(cur.pr, settings.precipUnit), 'last 15 min')}
-        ${data.daily.sunrise[todayIdxIn(data, tz)] ? cond(icon.sunrise, 'Sunrise / sunset', `${fmtClock(data.daily.sunrise[todayIdxIn(data, tz)], tz)}`, `sets ${fmtClock(data.daily.sunset[todayIdxIn(data, tz)], tz)}`) : ''}
+        ${data.daily.sunrise[todayIdxIn(data, tz)] ? cond(icon.sunrise, 'Sunrise / sunset', `${fmtClock(data.daily.sunrise[todayIdxIn(data, tz)], tz)}`, `sets ${fmtClock(data.daily.sunset[todayIdxIn(data, tz)], tz)} · ${daylight(data.daily.sunrise[todayIdxIn(data, tz)], data.daily.sunset[todayIdxIn(data, tz)])} daylight`) : ''}
       </div>
       <p class="today-sum">Today: high <strong>${fmtTemp(data.daily.tmax[todayIdxIn(data, tz)], settings.tempUnit)}</strong>, low <strong>${fmtTemp(data.daily.tmin[todayIdxIn(data, tz)], settings.tempUnit)}</strong> · ${esc(wxText(data.daily.wc[todayIdxIn(data, tz)]).toLowerCase())} · rain chance ${data.daily.ppmax[todayIdxIn(data, tz)] ?? '–'}% · wind up to ${fmtWind(data.daily.wsmax[todayIdxIn(data, tz)], settings.windUnit)}</p>
     </section>
@@ -222,36 +231,53 @@ function buildView(main, place, data, cleanups) {
 
     ${adSlot('banner', 'dash-ad1')}
 
-    <section class="dash-outlook" aria-label="Outlook">
-    <h2 class="section-title" style="margin-top:8px">Outlook</h2>
+    <section class="dash-outlook" aria-label="Analysis">
+    <h2 class="section-title" style="margin-top:8px">Analysis</h2>
     <div class="outlook-grid">
-      ${zam ? `<section class="card outlook">
-        <div class="o-kicker">${icon.gauge} Barometer says</div>
-        <div class="o-title">${esc(zam.text)}</div>
-        <p>From ${zam.trend} pressure of ${fmtPressure(nowMsl, unit, { withUnit: true })}, using the Zambretti method, a forecasting rule built into Victorian brass barometers.</p>
-        <div class="o-foot">Best for the next ~12 hours in mid-latitudes. Compare with the model forecast below.</div>
-      </section>` : ''}
       <section class="card outlook">
-        <div class="o-kicker">${icon.heart} Pressure swings</div>
-        <div class="o-title">${SWING_LABELS[swingLevel(next24)]} next 24 h</div>
-        <ul class="swing-list" aria-label="Pressure swing by day">${days.slice(todayIdx, todayIdx + 5).map((d) => {
-          const l = swingLevel(d.s);
-          return `<li><span class="sw-day">${d.key === todayKey ? 'Today' : esc(fmtWeekday(d.t + 12 * HOUR, tz))}</span>${meter(l)}<span class="sw-label">${SWING_LABELS[l]}</span><span class="sw-range num">${fmtPressure(d.s.range, unit)} ${U.label}</span></li>`;
-        }).join('')}</ul>
-        <p>${swingText(next24, unit)}</p>
-        <div class="o-foot">For people sensitive to weather: migraines, joint pain, sinus pressure. This is a heads-up, not medical advice.</div>
-      </section>
-      <section class="card outlook">
-        <div class="o-kicker">${icon.fish} Angler's outlook</div>
-        <div class="o-title">${esc(fish.rating)}</div>
-        <p>${esc(fish.text)}</p>
-        <div class="o-foot">Angler lore. Water temperature, light and tides matter too.</div>
+        <div class="o-kicker">${icon.gauge} Pressure tendency</div>
+        <div class="o-title">${wmo ? esc(shortTendency(wmo.code)) : esc(tend.label)}</div>
+        <dl class="kv">
+          ${wmo ? kv('WMO tendency code', `${wmo.code}`, wmo.text) : ''}
+          ${kv('3-hour change', fmtDelta(dp3msl, unit, { withUnit: true }), dp3msl != null && !fmtDelta(dp3msl / 3, unit).startsWith('±') ? `rate ${fmtDelta(dp3msl / 3, unit, { withUnit: true })}/h` : '')}
+          ${kv('24-hour change', fmtDelta(dp24msl, unit, { withUnit: true }))}
+          ${kv('Daily tide here', `±${fmtPressure(tideAmp, unit, { dp: U.ddp })} ${U.label}`, 'peaks near 10:00 and 22:00 solar time')}
+          ${dp3msl != null ? kv('3-hour change without tide', fmtDelta(dp3msl - tideDelta, unit, { withUnit: true })) : ''}
+          ${zam ? kv('Zambretti forecast', zam.text, 'pressure-and-trend rule for the next ~12 hours', { text: true }) : ''}
+        </dl>
       </section>
       <section class="card outlook">
         <div class="o-kicker">${icon.wave} Next 48 hours</div>
-        ${next48 ? `<div class="o-title">${next48.net > 0.5 ? 'Rising' : next48.net < -0.5 ? 'Falling' : 'Little change'} overall, ${fmtDelta(next48.net, unit, { withUnit: true })}</div>
-        <p>Low of <strong>${fmtPressure(next48.min, unit, { withUnit: true })}</strong> ${esc(fmtDayHour(next48.tMin, tz))}, high of <strong>${fmtPressure(next48.max, unit, { withUnit: true })}</strong> ${esc(fmtDayHour(next48.tMax, tz))}.</p>
-        <p>${next48.maxDrop < -0.5 ? `Fastest fall ${fmtDelta(next48.maxDrop, unit)} per 3 h, by ${esc(fmtDayHour(next48.tDrop, tz))}. ` : ''}${next48.maxRise > 0.5 ? `Fastest rise ${fmtDelta(next48.maxRise, unit)} per 3 h, by ${esc(fmtDayHour(next48.tRise, tz))}.` : ''}</p>` : '<p>No forecast data.</p>'}
+        ${next48 ? `<div class="o-title">${next48.net > 0.5 ? 'Rising' : next48.net < -0.5 ? 'Falling' : 'Little change'}, ${fmtDelta(next48.net, unit, { withUnit: true })}</div>
+        <dl class="kv">
+          ${kv('Lowest', fmtPressure(next48.min, unit, { withUnit: true }), fmtDayHour(next48.tMin, tz))}
+          ${kv('Highest', fmtPressure(next48.max, unit, { withUnit: true }), fmtDayHour(next48.tMax, tz))}
+          ${kv('Range', fmtPressure(next48.range, unit, { withUnit: true }))}
+          ${kv('Fastest 3-hour fall', next48.maxDrop < -0.05 ? fmtDelta(next48.maxDrop, unit, { withUnit: true }) : '–', next48.maxDrop < -0.05 ? `to ${fmtDayHour(next48.tDrop, tz)}` : '')}
+          ${kv('Fastest 3-hour rise', next48.maxRise > 0.05 ? fmtDelta(next48.maxRise, unit, { withUnit: true }) : '–', next48.maxRise > 0.05 ? `to ${fmtDayHour(next48.tRise, tz)}` : '')}
+        </dl>` : '<p>No forecast data.</p>'}
+      </section>
+      <section class="card outlook">
+        <div class="o-kicker">${icon.mountain} Air and altitude</div>
+        <div class="o-title">${rho != null ? `Air density ${(rho).toFixed(3)} kg/m³` : 'Air density –'}</div>
+        <dl class="kv">
+          ${rho != null ? kv('Relative to standard', `${Math.round((rho / 1.225) * 100)}%`, 'ISA sea level is 1.225 kg/m³') : ''}
+          ${rho != null ? kv('Density altitude', fmtHeight(densityAltitude(rho)), 'height in the standard atmosphere with this air density') : ''}
+          ${cur.sp != null ? kv('Pressure altitude', fmtHeight(pressureAltitude(cur.sp))) : ''}
+          ${cur.sp != null ? kv('Water boils at', fmtTempPrecise(boilingPoint(cur.sp))) : ''}
+          ${cur.sp != null ? kv('Oxygen', `${Math.round(oxygenPercent(cur.sp))}% of sea level`, 'partial pressure relative to 1013.25 hPa') : ''}
+        </dl>
+      </section>
+      <section class="card outlook">
+        <div class="o-kicker">${icon.drop} Moisture</div>
+        <div class="o-title">${cur.rh != null ? `${Math.round(cur.rh)}% relative humidity` : 'Humidity –'}</div>
+        <dl class="kv">
+          ${e != null ? kv('Vapour pressure', fmtPressure(e, unit, { withUnit: true, dp: U.ddp })) : ''}
+          ${e != null && cur.temp != null ? kv('Absolute humidity', `${absoluteHumidity(e, cur.temp).toFixed(1)} g/m³`) : ''}
+          ${e != null && cur.sp != null ? kv('Mixing ratio', `${mixingRatio(e, cur.sp).toFixed(1)} g/kg`) : ''}
+          ${cur.temp != null && cur.dew != null ? kv('Dew-point spread', fmtTempDelta(cur.temp - cur.dew), cur.temp - cur.dew < 2.5 ? 'small spread: fog or low cloud likely' : '') : ''}
+          ${cur.temp != null && cur.dew != null ? kv('Estimated cloud base', cur.temp - cur.dew < 0.5 ? 'at ground level' : fmtHeight(cloudBase(cur.temp, cur.dew)), 'above ground, for cumulus (Espy: 125 m per °C of spread)') : ''}
+        </dl>
       </section>
     </div>
     </section>
@@ -343,7 +369,7 @@ function buildView(main, place, data, cleanups) {
     const gmin = Math.min(...rows.map((d) => d.s.min));
     const gmax = Math.max(...rows.map((d) => d.s.max));
     const pct = (v) => ((v - gmin) / Math.max(0.1, gmax - gmin)) * 100;
-    main.querySelector('#daily').innerHTML = `<thead><tr><th>Day</th><th>Weather</th><th class="hide-sm">Temp</th><th>Pressure range</th><th>Change</th><th class="hide-sm">Swing</th></tr></thead><tbody>${rows.map((d) => {
+    main.querySelector('#daily').innerHTML = `<thead><tr><th>Day</th><th>Weather</th><th class="hide-sm">Temp</th><th>Pressure range</th><th>Change</th><th class="hide-sm">Variability</th></tr></thead><tbody>${rows.map((d) => {
       const cls = d.key === todayKey ? 'today' : d.i < days[todayIdx].i ? 'past' : '';
       const net = d.s.net;
       const ncls = Math.abs(net) < 1 ? 'steady' : net > 0 ? 'rise' : 'fall';
@@ -444,7 +470,41 @@ function todayIdxIn(data, tz) {
   return i < 0 ? 0 : i;
 }
 
-// Three-segment swing meter (1 = calm, 2 = moderate, 3 = big swing).
+// One labelled value in the analysis cards, with an optional note.
+function kv(label, value, note = '', { text = false } = {}) {
+  return `<div class="kv-row"><dt>${esc(label)}</dt><dd class="${text ? 'kv-text' : 'num'}">${esc(value)}</dd>${note ? `<dd class="kv-note">${esc(note)}</dd>` : ''}</div>`;
+}
+
+// Heights in metres and feet; feet first when °F is selected.
+function fmtHeight(m) {
+  const ft = m * 3.28084;
+  const fm = (v, u) => `${Math.round(v).toLocaleString().replace('-', '−')} ${u}`;
+  return settings.tempUnit === 'F' ? `${fm(ft, 'ft')} (${fm(m, 'm')})` : `${fm(m, 'm')} (${fm(ft, 'ft')})`;
+}
+
+// Temperature to one decimal, and temperature differences (no offset for °F).
+function fmtTempPrecise(c) {
+  const v = settings.tempUnit === 'F' ? c * 9 / 5 + 32 : c;
+  return `${v.toFixed(1).replace('-', '−')} ${settings.tempUnit === 'F' ? '°F' : '°C'}`;
+}
+function fmtTempDelta(dc) {
+  const v = settings.tempUnit === 'F' ? dc * 9 / 5 : dc;
+  return `${v.toFixed(1)} ${settings.tempUnit === 'F' ? '°F' : '°C'}`;
+}
+
+function daylight(rise, set) {
+  if (!rise || !set) return '–';
+  const m = Math.round((set - rise) / 60e3);
+  return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;
+}
+
+// Short title for each WMO tendency code.
+function shortTendency(code) {
+  return ['Rising, then falling', 'Rising, then steady', 'Rising', 'Now rising', 'Steady',
+    'Falling, then rising', 'Falling, then steady', 'Falling', 'Now falling'][code];
+}
+
+// Three-segment variability meter (1 = low, 2 = moderate, 3 = high).
 function meter(l) {
   return `<span class="meter l${l}" aria-hidden="true"><i></i><i></i><i></i></span>`;
 }
@@ -453,14 +513,6 @@ function cond(ic, k, val, sub) {
   return `<div class="cond"><div class="k">${ic}${esc(k)}</div><div class="val">${esc(val)}</div><div class="sub">${esc(sub || '')}</div></div>`;
 }
 
-function swingText(s, unit) {
-  const l = swingLevel(s);
-  if (!s) return '';
-  const r = fmtPressure(s.range, unit, { withUnit: true });
-  if (l === 3) return `A big swing is coming: pressure moves through ${r} over the next day, with the fastest change ${fmtDelta(Math.abs(s.maxDrop) > s.maxRise ? s.maxDrop : s.maxRise, unit, { withUnit: true })} in 3 hours.`;
-  if (l === 2) return `Moderate change: pressure moves through ${r} over the next day.`;
-  return `Calm: pressure stays within ${r} over the next day.`;
-}
 
 function updateSilently(patch) {
   Object.assign(settings, patch);

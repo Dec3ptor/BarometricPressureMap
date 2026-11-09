@@ -3,13 +3,13 @@
 // Weather data and map tiles always come from the network (the app caches
 // data itself).
 
-const VERSION = 'bpm-v8';
+const VERSION = 'bpm-v9';
 const SHELL = [
   './',
   'index.html',
   'manifest.webmanifest',
   'css/app.css',
-  'js/main.js', 'js/api.js', 'js/store.js', 'js/units.js', 'js/analysis.js', 'js/ui.js', 'js/wx.js',
+  'js/main.js', 'js/api.js', 'js/store.js', 'js/units.js', 'js/analysis.js', 'js/physics.js', 'js/ui.js', 'js/wx.js',
   'js/gauge.js', 'js/charts.js', 'js/pressure-layer.js', 'js/cities.js', 'js/world-data.js',
   'js/ads.js', 'js/report-data.js', 'js/report-export.js', 'js/views/report.js',
   'js/views/home.js', 'js/views/location.js', 'js/views/world.js', 'js/views/learn.js',

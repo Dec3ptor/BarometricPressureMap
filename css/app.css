@@ -483,6 +483,13 @@ main { outline: none; container: main / inline-size; }
 .outlook .o-title { font-size: 1.12rem; font-weight: 720; }
 .outlook p { color: var(--text-2); font-size: 0.92rem; margin: 0; }
 .outlook .o-foot { color: var(--muted); font-size: 0.78rem; margin-top: auto; }
+.kv { margin: 2px 0 0; }
+.kv-row { display: grid; grid-template-columns: minmax(min-content, 1fr) auto; column-gap: 12px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--border); }
+.kv-row:first-child { border-top: 0; padding-top: 2px; }
+.kv dt { color: var(--text-2); font-size: 0.86rem; }
+.kv dd { margin: 0; text-align: right; font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+.kv dd.kv-text { white-space: normal; max-width: 13em; text-wrap: balance; }
+.kv dd.kv-note { grid-column: 1 / -1; text-align: left; white-space: normal; font-weight: 500; font-size: 0.74rem; color: var(--muted); margin-top: 1px; }
 
 .swing-list { list-style: none; margin: 2px 0 4px; padding: 0; }
 .swing-list li {

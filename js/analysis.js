@@ -1,5 +1,5 @@
-// Pressure analysis: trends, levels, a Zambretti barometer forecast,
-// "pressure swing" outlooks and angler notes. All inputs are in hPa.
+// Pressure analysis: trends, levels, the Zambretti barometer forecast,
+// day-to-day variability and alerts. All inputs are in hPa.
 
 export const HOUR = 3600e3;
 
@@ -48,12 +48,12 @@ export function tendency(dp3) {
 
 // Sea-level pressure bands. 1009 / 1023 hPa ≈ 29.8 / 30.2 inHg.
 export const LEVELS = [
-  { min: 1033, key: 'vhigh', label: 'Very high', color: '#1e4fa3', desc: 'A strong high: usually settled and dry, often clear and cold in winter or hot in summer.' },
-  { min: 1023, key: 'high', label: 'High', color: '#2f7bd6', desc: 'High pressure: generally fair, stable weather with light winds.' },
-  { min: 1009, key: 'normal', label: 'Normal', color: '#7a8699', desc: 'Within the normal range. The trend matters more than the number here.' },
-  { min: 995, key: 'low', label: 'Low', color: '#d9653f', desc: 'Low pressure: clouds, wind and rain are more likely.' },
-  { min: 980, key: 'vlow', label: 'Very low', color: '#c2333a', desc: 'A deep low: expect unsettled, wet and windy weather.' },
-  { min: -Infinity, key: 'storm', label: 'Stormy', color: '#8e1c4e', desc: 'Exceptionally low pressure, typical of strong storms.' },
+  { min: 1033, key: 'vhigh', label: 'Very high', color: '#1e4fa3', desc: 'Strong anticyclone: subsiding air, usually dry and settled' },
+  { min: 1023, key: 'high', label: 'High', color: '#2f7bd6', desc: 'Anticyclonic: typically settled with light winds' },
+  { min: 1009, key: 'normal', label: 'Normal', color: '#7a8699', desc: 'Typical range; the weather depends mostly on the trend' },
+  { min: 995, key: 'low', label: 'Low', color: '#d9653f', desc: 'Cyclonic: cloud, wind and rain more likely' },
+  { min: 980, key: 'vlow', label: 'Very low', color: '#c2333a', desc: 'Deep depression: usually wet and windy' },
+  { min: -Infinity, key: 'storm', label: 'Stormy', color: '#8e1c4e', desc: 'Severe storm or tropical cyclone' },
 ];
 export function level(msl) {
   if (msl == null) return LEVELS[2];
@@ -118,20 +118,8 @@ export function swingLevel(s) {
   if (s.range >= 5 || rate >= 1.6) return 2;
   return 1;
 }
-export const SWING_LABELS = ['–', 'Calm', 'Moderate', 'Big swing'];
+export const SWING_LABELS = ['–', 'Low', 'Moderate', 'High'];
 
-export function fishing(lvl, tend, net24) {
-  const { key, strength } = tend;
-  if (key === 'fall' && strength >= 3) return { rating: 'Fair, then poor', text: 'Fish often feed hard ahead of a front, but a fast drop means rough weather is close. Go early and keep an eye on the sky.' };
-  if (key === 'fall') return { rating: 'Good', text: 'A slowly falling barometer is classic feeding weather. Many anglers rate this as the best time to be out.' };
-  if (key === 'rise' && strength >= 3) return { rating: 'Poor', text: 'Pressure is climbing fast behind a front. Fish tend to be sluggish until it settles.' };
-  if (key === 'rise' && (lvl.key === 'low' || lvl.key === 'vlow' || lvl.key === 'storm')) return { rating: 'Improving', text: 'Pressure is recovering from a low. Activity usually picks up as conditions stabilise.' };
-  if (key === 'rise') return { rating: 'Fair', text: 'Slowly rising pressure. Fish can be more cautious, so try slower presentations.' };
-  if (lvl.key === 'high' || lvl.key === 'vhigh') return { rating: 'Fair', text: 'Stable high pressure and bright skies: fish often hold deeper or near cover. Dawn and dusk are your best bet.' };
-  if (lvl.key === 'low' || lvl.key === 'vlow' || lvl.key === 'storm') return { rating: 'Slow', text: 'Low, flat pressure often means inactive fish. Try deeper water and slow baits.' };
-  if (net24 != null && net24 <= -4) return { rating: 'Good soon', text: 'Steady for now, but pressure is forecast to fall over the next day. Fishing often improves ahead of the drop.' };
-  return { rating: 'Normal', text: 'Steady, normal pressure, so fish behave as usual. Time of day, water temperature and light matter more right now.' };
-}
 
 // Notable events in the next 48 hours.
 export function alerts(times, msl, now, lat) {

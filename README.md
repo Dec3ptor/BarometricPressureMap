@@ -19,9 +19,14 @@ GitHub Pages.
   Each loads its data once, with no panning or zooming, to keep API use low.
   (A full interactive map was removed for now, since heavy use would need a
   paid weather API plan.)
-- **Outlooks**: Zambretti barometer forecast, pressure-swing outlook for
-  weather-sensitive people, angler's outlook, a 48-hour summary, and alerts for
-  sharp drops or rises and explosive storm deepening.
+- **Analysis**: WMO pressure tendency code, 3- and 24-hour change and rate,
+  the semidiurnal atmospheric tide (and the change with it removed), the
+  Zambretti forecast, a 48-hour summary, and alerts for sharp drops or
+  rises and explosive cyclogenesis.
+- **Air and moisture**: air density, density altitude, pressure altitude,
+  boiling point of water, oxygen partial pressure, vapour pressure,
+  absolute humidity, mixing ratio, dew-point spread and estimated cloud
+  base, all calculated from current conditions (js/physics.js).
 - **Day-by-day table** with daily pressure range, change and weather.
 - **World rankings**: highest, lowest, fastest rising and falling, and most
   stable pressure across ~170 cities, computed live in the browser.
