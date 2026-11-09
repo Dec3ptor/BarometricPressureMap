@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://barocast.nz/sitemap.xml

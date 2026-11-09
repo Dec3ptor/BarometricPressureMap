@@ -76,25 +76,36 @@ To go live with AdSense:
 1. Set `mode: 'adsense'` and `client` to your publisher ID (`ca-pub-…`).
 2. Optionally create *rail*, *banner* and *box* ad units in AdSense and put
    their IDs in `slots`. Empty IDs use auto-sized units.
-3. Add an `ads.txt` file at the site root as AdSense instructs. A GitHub
-   Pages project site lives under `/BarometricPressureMap/`, but `ads.txt`
-   must be at the domain root, so use a custom domain or a
-   `<username>.github.io` repository for it.
+3. Add an `ads.txt` file at the site root (https://barocast.nz/ads.txt)
+   with the line AdSense gives you.
 4. For visitors in the EEA, UK and Switzerland, AdSense requires a consent
    message. Turn on Google's consent management in your AdSense account.
 
 ## Hosting on GitHub Pages
 
 The site is plain static files at the repository root, so no build is needed.
+It deploys from **`main`** / **`/ (root)`** (Settings → Pages → Deploy from a
+branch) and is served at **https://barocast.nz/**. The `.nojekyll` file stops
+GitHub from running Jekyll over the files.
 
-1. Merge this branch into `main`.
-2. In the repo, open **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to *Deploy from a branch*,
-   then choose **`main`** and **`/ (root)`** and save.
-4. After a minute the site is live at
-   `https://<your-username>.github.io/BarometricPressureMap/`.
+### Custom domain (barocast.nz)
 
-The `.nojekyll` file stops GitHub from running Jekyll over the files.
+DNS records at the domain registrar (Crazy Domains):
+
+| Type | Name | Value |
+| --- | --- | --- |
+| A | `@` (barocast.nz) | `185.199.108.153` |
+| A | `@` | `185.199.109.153` |
+| A | `@` | `185.199.110.153` |
+| A | `@` | `185.199.111.153` |
+| AAAA (optional) | `@` | `2606:50c0:8000::153`, `…8001::153`, `…8002::153`, `…8003::153` |
+| CNAME | `www` | `dec3ptor.github.io` |
+| TXT (domain verification) | `_github-pages-challenge-dec3ptor` | value shown by GitHub |
+
+Then in the repo: Settings → Pages → Custom domain → `barocast.nz` → Save,
+and tick **Enforce HTTPS** once GitHub has issued the certificate. Saving the
+domain makes GitHub commit a `CNAME` file to `main`; keep that file. The old
+`dec3ptor.github.io/BarometricPressureMap/` address redirects automatically.
 
 ## Running locally
 
