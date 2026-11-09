@@ -13,7 +13,10 @@
 //
 // To go live with AdSense: set mode to 'adsense', put your publisher ID in
 // client (ca-pub-...) and the ad unit IDs from your AdSense account in
-// slots. Unit IDs left empty fall back to AdSense auto-sized units.
+// slots. The AdSense script tag must also be in the <head> of index.html
+// and privacy.html (Google checks for it there). In 'adsense' mode a space
+// whose unit ID is empty is left out entirely, so no empty boxes show;
+// AdSense Auto ads, if switched on in your account, still work.
 
 export const ADS = {
   mode: 'placeholder',
@@ -25,6 +28,9 @@ export const ADS = {
 
 export const adsOn = () => ADS.mode === 'placeholder' || ADS.mode === 'adsense';
 
+// Whether a given kind of space should be shown.
+export const slotOn = (kind) => ADS.mode === 'placeholder' || (ADS.mode === 'adsense' && !!ADS.adsense.slots[kind]);
+
 const SIZES = {
   rail: 'Ad space · 160×600',
   banner: 'Ad space · 728×90 / 320×100',
@@ -33,7 +39,7 @@ const SIZES = {
 
 // HTML for a slot. `cls` adds extra classes for placement/visibility.
 export function adSlot(kind, cls = '') {
-  if (!adsOn()) return '';
+  if (!slotOn(kind)) return '';
   return `<div class="ad ad-${kind} ${cls}" data-ad="${kind}" role="complementary" aria-label="Advertisement">
     <span class="ad-label">Advertisement</span>
     <div class="ad-body">${ADS.mode === 'placeholder' ? `<span class="ad-ph">${SIZES[kind]}</span>` : ''}</div>
@@ -42,6 +48,8 @@ export function adSlot(kind, cls = '') {
 
 let scriptLoaded = false;
 function loadAdsense() {
+  // Normally already in the page <head>; only add it if it's missing.
+  if (!scriptLoaded && document.querySelector('script[src*="adsbygoogle.js"]')) scriptLoaded = true;
   if (scriptLoaded) return;
   scriptLoaded = true;
   const s = document.createElement('script');
@@ -61,9 +69,10 @@ export function fillAds(root = document) {
   for (const el of slots) {
     const kind = el.dataset.ad;
     const unit = ADS.adsense.slots[kind];
+    if (!unit) continue;
     const format = kind === 'rail' ? 'vertical' : kind === 'banner' ? 'horizontal' : 'rectangle';
     el.querySelector('.ad-body').innerHTML = `<ins class="adsbygoogle" style="display:block;width:100%;height:100%"
-      data-ad-client="${ADS.adsense.client}" ${unit ? `data-ad-slot="${unit}"` : ''} data-ad-format="${format}"
+      data-ad-client="${ADS.adsense.client}" data-ad-slot="${unit}" data-ad-format="${format}"
       data-full-width-responsive="false"></ins>`;
     el.dataset.filled = '1';
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch { /* blocked */ }

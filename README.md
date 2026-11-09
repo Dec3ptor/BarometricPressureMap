@@ -74,8 +74,12 @@ Where the spaces are:
 To go live with AdSense:
 
 1. Set `mode: 'adsense'` and `client` to your publisher ID (`ca-pub-…`).
-2. Optionally create *rail*, *banner* and *box* ad units in AdSense and put
-   their IDs in `slots`. Empty IDs use auto-sized units.
+2. Create three display ad units in AdSense (Ads → By ad unit → Display
+   ads): a vertical one for the side rails, a horizontal one for banners and
+   a square one for boxes. Put their IDs in `slots`. A space with no unit ID
+   is left out, and AdSense Auto ads (if on) places its own ads instead.
+   Add the AdSense `<script>` tag from **Get code** to the `<head>` of
+   `index.html` and `privacy.html`.
 3. Add an `ads.txt` file at the site root (https://barocast.nz/ads.txt)
    with the line AdSense gives you.
 4. For visitors in the EEA, UK and Switzerland, AdSense requires a consent

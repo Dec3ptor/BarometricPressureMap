@@ -4,7 +4,7 @@ import { settings, updateSettings, onSettingsChange, getRecents, getFavorites, c
 import { searchPlaces, parseCoords, getPosition, reverseGeocode, coordName } from './api.js';
 import { PRESSURE_UNITS } from './units.js';
 import { $, $$, esc, toast, placeHref } from './ui.js';
-import { adsOn, adSlot, fillAds } from './ads.js';
+import { adsOn, slotOn, adSlot, fillAds } from './ads.js';
 
 const routes = {
   '': () => import('./views/home.js'),
@@ -267,7 +267,8 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 // ---------- Ads ----------
 
 if (adsOn()) {
-  document.body.classList.add('ads-on');
+  // Side rails only take space when there's something to show in them.
+  if (slotOn('rail')) document.body.classList.add('ads-on');
   $$('.ad-side').forEach((el) => { el.innerHTML = adSlot('rail'); });
   // Slots that only appear at some widths are filled when they become visible.
   let t;
