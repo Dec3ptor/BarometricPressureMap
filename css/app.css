@@ -332,6 +332,13 @@ main { outline: none; container: main / inline-size; }
 .home-ad, .report-ad { margin: 24px 0 4px; }
 .home-adbox { margin-top: 16px; }
 .learn-ad-inline { margin: 22px 0; }
+.ad-multiplex .ad-body { min-height: 260px; }
+.ad-multiplex[data-filled] .ad-body { min-height: 0; display: block; place-items: normal; }
+.mx-ad { margin: 28px 0 4px; }
+/* Spaces Google leaves empty (for example before approval) hide themselves;
+   side rails keep their room so the page doesn't jump sideways. */
+.ad:has(ins.adsbygoogle[data-ad-status="unfilled"]) { display: none !important; }
+.ad-side .ad:has(ins.adsbygoogle[data-ad-status="unfilled"]) { display: flex !important; visibility: hidden; }
 
 /* ---------- Home ---------- */
 
@@ -555,6 +562,7 @@ main { outline: none; container: main / inline-size; }
 .dash-ad2 { order: 7; }
 .dash-cond { order: 8; }
 .dash-side { order: 9; display: grid; gap: 16px; align-content: start; min-width: 0; }
+.dash-mx { order: 10; margin: 12px 0 0; }
 .dash-adbox { display: none; }
 @container main (min-width: 1200px) {
   .dash { grid-template-columns: minmax(0, 1.9fr) minmax(360px, 1fr); }
@@ -568,6 +576,7 @@ main { outline: none; container: main / inline-size; }
   .dash-daily { order: 7; grid-column: 1; }
   .dash-ad2 { display: none; }
   .dash-side { order: 8; grid-column: 2; align-self: start; position: sticky; top: calc(var(--topbar-h) + 16px); }
+  .dash-mx { order: 9; grid-column: 1 / -1; }
   .dash-adbox { display: flex; }
   .dash-map .mini-map { height: clamp(380px, calc(100vh - var(--topbar-h) - 190px), 760px); }
   .ads-on .dash-map .mini-map { height: clamp(300px, calc(100vh - var(--topbar-h) - 470px), 640px); }

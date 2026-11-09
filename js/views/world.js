@@ -33,6 +33,7 @@ export async function render(main, params, { isActive }) {
         <div class="tall-scroll"><table class="data-table" id="wtable"></table></div>
       </section>
     </div>
+    ${adSlot('multiplex', 'mx-ad')}
     <footer class="footer">Rankings are recalculated in your browser from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> model data and cached for 45 minutes. · <a href="privacy.html">Privacy</a></footer>
   </div>`;
 

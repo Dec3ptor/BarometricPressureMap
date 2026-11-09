@@ -77,6 +77,8 @@ export async function render(main) {
     </section>
     </div>
 
+    ${adSlot('multiplex', 'mx-ad')}
+
     <div id="install-slot"></div>
 
     <footer class="footer">${ADS.mode === 'adsense' ? 'Free to use, supported by ads.' : 'Free to use, with no tracking.'} Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. · <a href="privacy.html">Privacy</a></footer>

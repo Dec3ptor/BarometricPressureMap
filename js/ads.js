@@ -10,6 +10,7 @@
 //   banner  responsive horizontal unit inside pages
 //           (728x90 on desktop, 320x100 on phones)
 //   box     300x250 rectangle in side columns on large screens
+//   multiplex  full-width grid of ad tiles at the end of longer pages
 //
 // To go live with AdSense: set mode to 'adsense', put your publisher ID in
 // client (ca-pub-...) and the ad unit IDs from your AdSense account in
@@ -19,10 +20,12 @@
 // AdSense Auto ads, if switched on in your account, still work.
 
 export const ADS = {
-  mode: 'placeholder',
+  mode: 'adsense',
   adsense: {
-    client: 'ca-pub-0000000000000000',
-    slots: { rail: '', banner: '', box: '' },
+    client: 'ca-pub-9990772667977184',
+    // The "HorAd" unit is a responsive display unit, so it adapts to each
+    // space. Separate units per space would give separate earnings reports.
+    slots: { rail: '5608118035', banner: '5608118035', box: '5608118035', multiplex: '3257286869' },
   },
 };
 
@@ -35,6 +38,7 @@ const SIZES = {
   rail: 'Ad space · 160×600',
   banner: 'Ad space · 728×90 / 320×100',
   box: 'Ad space · 300×250',
+  multiplex: 'Ad space · multiplex (full width)',
 };
 
 // HTML for a slot. `cls` adds extra classes for placement/visibility.
@@ -70,10 +74,13 @@ export function fillAds(root = document) {
     const kind = el.dataset.ad;
     const unit = ADS.adsense.slots[kind];
     if (!unit) continue;
-    const format = kind === 'rail' ? 'vertical' : kind === 'banner' ? 'horizontal' : 'rectangle';
-    el.querySelector('.ad-body').innerHTML = `<ins class="adsbygoogle" style="display:block;width:100%;height:100%"
-      data-ad-client="${ADS.adsense.client}" data-ad-slot="${unit}" data-ad-format="${format}"
-      data-full-width-responsive="false"></ins>`;
+    el.querySelector('.ad-body').innerHTML = kind === 'multiplex'
+      ? `<ins class="adsbygoogle" style="display:block;width:100%" data-ad-format="autorelaxed"
+          data-ad-client="${ADS.adsense.client}" data-ad-slot="${unit}"></ins>`
+      : `<ins class="adsbygoogle" style="display:block;width:100%;height:100%"
+          data-ad-client="${ADS.adsense.client}" data-ad-slot="${unit}"
+          data-ad-format="${kind === 'rail' ? 'vertical' : kind === 'banner' ? 'horizontal' : 'rectangle'}"
+          data-full-width-responsive="false"></ins>`;
     el.dataset.filled = '1';
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch { /* blocked */ }
   }

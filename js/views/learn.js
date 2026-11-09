@@ -136,6 +136,7 @@ export async function render(main) {
         ${adSlot('box')}
       </aside>
     </div>
+    ${adSlot('multiplex', 'mx-ad')}
     <footer class="footer">Map tiles © Esri, HERE, Garmin, © OpenStreetMap contributors. Weather data © Open-Meteo (CC BY 4.0). · <a href="privacy.html">Privacy</a></footer>
   </div>`;
 

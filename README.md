@@ -59,8 +59,8 @@ they load. Everything is controlled from the `ADS` object at the top of
 
 | `mode` | What visitors see |
 | --- | --- |
-| `'placeholder'` (default) | Labelled empty boxes showing where ads will go |
-| `'adsense'` | Google AdSense units in those boxes |
+| `'placeholder'` | Labelled empty boxes showing where ads will go |
+| `'adsense'` (current) | Google AdSense units in those boxes |
 | `'off'` | No ad space; layouts close up |
 
 Where the spaces are:
@@ -70,6 +70,7 @@ Where the spaces are:
 | PC, 1280 px and wider | A 160×600 rail fixed to the right of the page, and a second rail on the left from 1600 px. They become 300×600 from 2200 px. Content moves over so nothing sits under them. |
 | PC side columns | 300×250 boxes under the place page map, below the Explore links on Home, and in the Learn page's reference column |
 | All screens | A banner (728×90 on wide screens, 320×100 on phones) between sections. Phones get at most two per page. |
+| End of pages | A full-width Multiplex unit at the end of the Home, place, World and Learn pages |
 
 To go live with AdSense:
 

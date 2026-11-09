@@ -276,6 +276,7 @@ function buildView(main, place, data, cleanups) {
     </section>
     ${adSlot('box', 'dash-adbox')}
     </div>
+    ${adSlot('multiplex', 'mx-ad dash-mx')}
     </div>
 
     <footer class="footer">Weather data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (national weather service models), updated hourly. Times shown in ${esc(tz)}. · <a href="privacy.html">Privacy</a></footer>
