@@ -423,7 +423,7 @@ function buildView(main, place, data, cleanups) {
       ctrl?.abort();
       ctrl = new AbortController();
       try {
-        const field = await grid.field(map.getBounds().pad(0.15), { signal: ctrl.signal, maxPoints: 100 });
+        const field = await grid.field(map.getBounds().pad(0.1), { signal: ctrl.signal, maxPoints: 36 });
         layer.setTime(PAST_H + Math.round((Date.now() - (grid.base + PAST_H * HOUR)) / HOUR));
         layer.setField(field);
       } catch (e) { if (e.name !== 'AbortError') console.warn(e); }

@@ -14,7 +14,51 @@ export class ApiError extends Error {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Rate limits. Open-Meteo's free tier allows about 600 requests a minute,
+// 5,000 an hour and 10,000 a day per network, where each location in a
+// request counts. Once a limit is hit we stop asking until it should have
+// reset, instead of piling on more refused requests.
+
+const LIMIT_KEY = 'bpm:ratelimit';
+const isMetered = (url) => /\/\/(api|archive-api)\.open-meteo\.com\//.test(url);
+
+export function rateLimit() {
+  try {
+    const v = JSON.parse(localStorage.getItem(LIMIT_KEY));
+    return v && v.until > Date.now() ? v : null;
+  } catch { return null; }
+}
+
+function noteRateLimit(reason) {
+  const r = String(reason || '').toLowerCase();
+  const now = Date.now();
+  let v;
+  if (r.includes('daily') || r.includes('tomorrow')) {
+    const d = new Date();
+    v = { kind: 'day', until: Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1, 0, 5) };
+  } else if (r.includes('hour')) {
+    v = { kind: 'hour', until: now + 60 * 60e3 };
+  } else {
+    v = { kind: 'minute', until: now + 65e3 };
+  }
+  try { localStorage.setItem(LIMIT_KEY, JSON.stringify(v)); } catch { /* ignore */ }
+  return v;
+}
+
+export function rateLimitMessage(v = rateLimit()) {
+  if (!v) return '';
+  const mins = Math.max(1, Math.ceil((v.until - Date.now()) / 60e3));
+  if (v.kind === 'minute') return 'Lots of weather data was requested in the last minute, so new data is paused briefly. It will load again in about a minute. Saved data is shown where available.';
+  if (v.kind === 'hour') return `The free weather service's hourly limit for your network has been reached. New data will load again in about ${mins} minutes. Saved data is shown where available.`;
+  return `The free weather service's daily limit for your network has been reached. New data will load again from ${new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(v.until)}. Saved data is shown where available.`;
+}
+
 async function getJson(url, { signal } = {}) {
+  if (isMetered(url)) {
+    const lim = rateLimit();
+    if (lim) throw new ApiError(rateLimitMessage(lim), 429);
+  }
   let res;
   try {
     res = await fetch(url, { signal });
@@ -28,9 +72,8 @@ async function getJson(url, { signal } = {}) {
   try { body = await res.json(); } catch { /* non-JSON */ }
   if (!res.ok || (body && body.error)) {
     const reason = body && body.reason ? body.reason : `HTTP ${res.status}`;
-    if (res.status === 429) {
-      throw new ApiError('The free weather service has hit its request limit for your network. ' +
-        'It resets within the hour (or by tomorrow for the daily limit). Cached data is shown where available.', 429);
+    if (res.status === 429 || /limit exceeded/i.test(reason)) {
+      throw new ApiError(rateLimitMessage(noteRateLimit(reason)), 429);
     }
     throw new ApiError(reason, res.status);
   }

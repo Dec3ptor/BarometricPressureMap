@@ -16,10 +16,12 @@ import { CITIES } from './cities.js';
 const HOUR = 3600e3;
 export const PAST_H = 24;
 export const FUTURE_H = 72;
-const MAX_POINTS = 180;
+const MAX_POINTS = 48;
 const FRESH_MS = 60 * 60e3;
-const STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 9, 10, 12, 15, 18];
-const VARS = ['pressure_msl', 'wind_speed_10m', 'wind_direction_10m'];
+// Grid spacings in degrees. All divide 90, so rows never fall outside ±90°.
+const STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4.5, 5, 6, 7.5, 9, 10, 15, 18, 22.5, 30, 45];
+// Only pressure is drawn on the preview maps; each grid point is one API call.
+const VARS = ['pressure_msl'];
 
 const floorHour = (t) => Math.floor(t / HOUR) * HOUR;
 const normLon = (lon) => ((((lon + 180) % 360) + 360) % 360) - 180;
@@ -109,7 +111,8 @@ export class GridSource {
     const w = bounds.getWest();
     const e = bounds.getEast();
     for (const step of STEPS) {
-      const j0 = Math.floor(s / step), j1 = Math.ceil(n / step);
+      const j0 = Math.max(Math.floor(s / step), -Math.round(90 / step));
+      const j1 = Math.min(Math.ceil(n / step), Math.round(90 / step));
       const i0 = Math.floor(w / step), i1 = Math.ceil(e / step);
       const nx = Math.min(i1 - i0 + 1, Math.round(360 / step));
       const ny = j1 - j0 + 1;
@@ -154,8 +157,8 @@ export class GridSource {
             k: m.k,
             t0: r.time[0],
             p: Float32Array.from(r.series.pressure_msl, (v) => (v == null ? NaN : v)),
-            ws: Float32Array.from(r.series.wind_speed_10m, (v) => (v == null ? NaN : v)),
-            wd: Float32Array.from(r.series.wind_direction_10m, (v) => (v == null ? NaN : v)),
+            ws: Float32Array.from(r.series.wind_speed_10m || [], (v) => (v == null ? NaN : v)),
+            wd: Float32Array.from(r.series.wind_direction_10m || [], (v) => (v == null ? NaN : v)),
             fetchedAt: t,
           });
         });

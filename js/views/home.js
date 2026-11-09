@@ -116,9 +116,14 @@ async function loadCards(main) {
       results = r.map((x, i) => ({ key: points[i].key, time: x.time, msl: x.series.pressure_msl, sp: x.series.surface_pressure }));
       cacheSet(cacheKey, results);
     } catch (e) {
-      all.forEach((el) => { el.querySelector('.pc-trend').textContent = 'unavailable'; });
+      // Fall back to the last saved readings (up to a day old) if there are any.
+      const stale = cacheGet(cacheKey, 24 * 3600e3);
       main.querySelector('.place-cards')?.insertAdjacentHTML('beforebegin', `<div class="alert info" style="margin-bottom:12px">${icon.info}<div>${esc(e.message)}</div></div>`);
-      return;
+      if (!stale) {
+        all.forEach((el) => { el.querySelector('.pc-trend').textContent = 'unavailable'; });
+        return;
+      }
+      results = stale;
     }
   }
   const unit = settings.pressureUnit;
@@ -156,8 +161,8 @@ function initMapPreview(main, last, favs, cleanups) {
   if (!el || !el.offsetParent) return; // hidden on small screens
   const center = last || favs[0];
   // A fixed view: one data load, no panning or zooming (keeps API use low).
-  const map = L.map(el, { ...STATIC_MAP, zoomSnap: 0.5 })
-    .setView(center ? [center.lat, center.lon] : [35, 10], center ? 3.5 : 2);
+  const map = L.map(el, STATIC_MAP)
+    .setView(center ? [center.lat, center.lon] : regionFromTimeZone(), 4);
   cleanups.push(addBaseLayers(map));
   const layer = createPressureLayer({ isobars: true, centers: true, cities: true, opacity: 0.6 }).addTo(map);
   if (center) {
@@ -167,7 +172,7 @@ function initMapPreview(main, last, favs, cleanups) {
   let timer;
   const load = async () => {
     try {
-      const field = await grid.field(map.getBounds().pad(0.15), { signal: ctrl.signal, maxPoints: 120 });
+      const field = await grid.field(map.getBounds().pad(0.1), { signal: ctrl.signal, maxPoints: 42 });
       layer.setTime(PAST_H + Math.round((Date.now() - (grid.base + PAST_H * HOUR)) / HOUR));
       layer.setField(field);
     } catch (e) { if (e.name !== 'AbortError') console.warn(e); }
@@ -175,6 +180,30 @@ function initMapPreview(main, last, favs, cleanups) {
   map.on('resize', () => { clearTimeout(timer); timer = setTimeout(load, 450); });
   load();
   cleanups.push(() => { ctrl.abort(); clearTimeout(timer); map.remove(); });
+}
+
+// First visit, no saved place: centre the preview on the visitor's region,
+// guessed from the device time zone (no location permission needed).
+function regionFromTimeZone() {
+  let tz = '';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { /* ignore */ }
+  const table = [
+    [/^Pacific\/(Auckland|Chatham)/, [-41, 173]],
+    [/^Australia\/(Perth|Darwin)/, [-25, 128]],
+    [/^Australia\//, [-32, 145]],
+    [/^Pacific\//, [-15, 175]],
+    [/^Asia\/(Tokyo|Seoul|Shanghai|Hong_Kong|Taipei)/, [35, 125]],
+    [/^Asia\/(Kolkata|Calcutta|Dhaka|Karachi|Colombo|Kathmandu)/, [24, 78]],
+    [/^Asia\//, [25, 105]],
+    [/^Europe\/(London|Dublin|Lisbon)/, [53, -5]],
+    [/^Europe\//, [50, 12]],
+    [/^Africa\//, [5, 20]],
+    [/^America\/(Argentina|Sao_Paulo|Santiago|Lima|Bogota|Caracas|Montevideo)/, [-20, -60]],
+    [/^America\/(Los_Angeles|Vancouver|Phoenix|Denver|Edmonton)/, [42, -115]],
+    [/^America\//, [40, -90]],
+  ];
+  for (const [re, c] of table) if (re.test(tz)) return c;
+  return [48, 0];
 }
 
 // Compact leaderboards from the World page data.
