@@ -291,6 +291,7 @@ export function createPressureLayer(opts = {}) {
           map.getPane(name).style.zIndex = z;
           map.getPane(name).style.pointerEvents = 'none';
           map.getPane(name).classList.add('leaflet-pressure-pane');
+          if (name === 'pressure') map.getPane(name).classList.add('leaflet-shade-pane');
         }
       }
       this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');

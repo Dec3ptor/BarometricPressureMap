@@ -121,6 +121,8 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <!-- Position map tiles without 3D transforms: avoids hairline seams on high-DPI phones. -->
+  <script>window.L_DISABLE_3D = true;</script>
   <script src="vendor/leaflet/leaflet.js"></script>
   <script src="vendor/chartjs/chart.umd.js"></script>
   <script type="module" src="js/main.js"></script>

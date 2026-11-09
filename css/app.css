@@ -666,8 +666,16 @@ dialog.sheet::backdrop { background: rgba(8, 12, 22, 0.45); backdrop-filter: blu
 
 /* ---------- Maps (preview maps, world map) ---------- */
 
-.leaflet-container { font-family: var(--font); background: var(--surface-2); }
+/* Background matches the base map's sea colour, so hairline gaps between
+   tiles on high-resolution screens don't show as lines. */
+.leaflet-container { font-family: var(--font); background: #d0cfd4; }
+.is-dark .leaflet-container { background: #2e3039; }
 .leaflet-pane.leaflet-pressure-pane canvas { pointer-events: none; }
+/* Pressure shading tints the map with its colour but keeps the map's own
+   light and dark, so coastlines and borders stay easy to see. */
+.leaflet-shade-pane { mix-blend-mode: color; filter: saturate(2.2); }
+/* The dark base map is very dark; lift it so land and sea separate. */
+.is-dark .leaflet-tile-pane { filter: brightness(1.7) contrast(1.2); }
 .spinner { width: 14px; height: 14px; border-radius: 99px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--text); }

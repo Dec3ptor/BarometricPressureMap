@@ -3,7 +3,7 @@
 // Weather data and map tiles always come from the network (the app caches
 // data itself).
 
-const VERSION = 'bpm-v7';
+const VERSION = 'bpm-v8';
 const SHELL = [
   './',
   'index.html',
