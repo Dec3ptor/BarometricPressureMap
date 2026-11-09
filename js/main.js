@@ -9,7 +9,6 @@ import { adsOn, adSlot, fillAds } from './ads.js';
 const routes = {
   '': () => import('./views/home.js'),
   place: () => import('./views/location.js'),
-  map: () => import('./views/map.js'),
   world: () => import('./views/world.js'),
   learn: () => import('./views/learn.js'),
   report: () => import('./views/report.js'),
@@ -31,7 +30,9 @@ async function render({ keepScroll = false } = {}) {
   const token = ++renderToken;
   const navKey = path === 'place' ? '' : (routes[path] ? path : '');
   $$('[data-nav]').forEach((a) => a.classList.toggle('active', (a.dataset.nav === 'home' ? '' : a.dataset.nav) === navKey && path !== 'place'));
-  document.body.dataset.route = path || 'home';
+  // Unknown or retired routes (such as the old full map) fall back to home.
+  if (path && !routes[path]) history.replaceState(null, '', '#/');
+  document.body.dataset.route = routes[path] ? (path || 'home') : 'home';
   const scrollY = window.scrollY;
   try {
     const mod = await loader();

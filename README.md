@@ -1,7 +1,8 @@
-# Barometric Pressure Map
+# BaroCast
 
 Barometric pressure for anywhere on Earth: two weeks of history, a 16-day
-forecast, trend alerts, a classic barometer dial and a live isobar map.
+forecast, trend alerts, a classic barometer dial, isobar maps and
+conditions reports.
 A static site with no build step, no backend and no API keys, hosted on
 GitHub Pages.
 
@@ -13,9 +14,11 @@ GitHub Pages.
 - **History and forecast chart**: 14 days back and 16 days ahead, hourly. Includes
   a 3-hour-change panel, normal-range band, forecast shown dashed, and optional
   temperature, humidity, wind or rain-chance overlays.
-- **Live pressure map**: smooth isobars with labels, H/L centres, colour
-  shading or 3-hour change, wind arrows and city readings. Has a 4-day time
-  slider with play, and you can tap anywhere for a reading.
+- **Isobar maps**: fixed preview maps on the home and place pages show
+  pressure shading, isobars with labels, highs and lows, and city readings.
+  Each loads its data once, with no panning or zooming, to keep API use low.
+  (A full interactive map was removed for now, since heavy use would need a
+  paid weather API plan.)
 - **Outlooks**: Zambretti barometer forecast, pressure-swing outlook for
   weather-sensitive people, angler's outlook, a 48-hour summary, and alerts for
   sharp drops or rises and explosive storm deepening.
@@ -32,8 +35,7 @@ GitHub Pages.
 - Favourites, recent places, light/dark theme, installable PWA with offline
   shell, and shareable links.
 - Layouts that make use of large screens: a two-column place dashboard
-  with a sticky map, a home page with a live map preview and world
-  snapshot, a map side panel listing highs, lows and city readings in view,
+  with a sticky map, a home page with a map preview and world snapshot,
   and a quick-reference column on the Learn page.
 
 ## Data sources
@@ -66,8 +68,8 @@ Where the spaces are:
 | Screen | Spaces |
 | --- | --- |
 | PC, 1280 px and wider | A 160×600 rail fixed to the right of the page, and a second rail on the left from 1600 px. They become 300×600 from 2200 px. Content moves over so nothing sits under them. |
-| PC side columns | 300×250 boxes under the place page map, below the Explore links on Home, in the Learn page's reference column and at the foot of the map page's side panel |
-| All screens | A banner (728×90 on wide screens, 320×100 on phones) between sections. Phones get at most two per page and none on the full-screen map. |
+| PC side columns | 300×250 boxes under the place page map, below the Explore links on Home, and in the Learn page's reference column |
+| All screens | A banner (728×90 on wide screens, 320×100 on phones) between sections. Phones get at most two per page. |
 
 To go live with AdSense:
 
@@ -111,14 +113,14 @@ css/app.css             All styles, light + dark themes
 js/main.js              Router, search, settings, PWA install
 js/api.js               Open-Meteo / geocoding clients with caching
 js/analysis.js          Trends, levels, Zambretti, swings, alerts
-js/pressure-layer.js    Map grid fetching + canvas isobar renderer
+js/pressure-layer.js    Map grid fetching + canvas isobar renderer (preview maps)
 js/world-data.js        Shared live data for the ~170 tracked cities
 js/charts.js            Chart.js history/forecast chart
 js/gauge.js             SVG barometer dial
 js/ads.js               Ad slot settings and AdSense loader
 js/report-data.js       Report calculations (time windows, summaries)
 js/report-export.js     Report charts, PDF and CSV output
-js/views/*.js           Home, place, map, world, report and learn pages
+js/views/*.js           Home, place, world, report and learn pages
 vendor/                 Leaflet 1.9.4, Chart.js 4.4.7, jsPDF 2.5.2 and
                         jsPDF-AutoTable 3.8.4 (vendored; PDF tools load
                         only when a PDF is made)

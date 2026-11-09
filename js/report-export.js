@@ -331,7 +331,7 @@ export async function toPDF(ctx) {
   const W = 210, M = 14, CW = W - 2 * M;
   const ACCENT = [79, 70, 229], INK = [15, 23, 42], MUTED = [93, 103, 121], LINE = [221, 226, 234];
 
-  doc.setProperties({ title: T(meta.title), subject: T(`Conditions report for ${meta.placeName}`), creator: 'Barometric Pressure Map' });
+  doc.setProperties({ title: T(meta.title), subject: T(`Conditions report for ${meta.placeName}`), creator: 'BaroCast' });
 
   // Header band
   doc.setFillColor(...ACCENT);
@@ -484,7 +484,7 @@ export async function toPDF(ctx) {
     doc.setFontSize(7.5);
     doc.setTextColor(...MUTED);
     doc.text(T(`${meta.title} · ${meta.placeName} · ${f.date(report.t0)}`), M, 292);
-    doc.text(`Page ${i} of ${pages}`, W - M, 292, { align: 'right' });
+    doc.text(`BaroCast · Page ${i} of ${pages}`, W - M, 292, { align: 'right' });
   }
   return doc;
 }

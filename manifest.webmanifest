@@ -1,7 +1,7 @@
 {
-  "name": "Barometric Pressure Map",
-  "short_name": "PressureMap",
-  "description": "Barometric pressure history, forecast, trend and a live isobar map for anywhere in the world.",
+  "name": "BaroCast",
+  "short_name": "BaroCast",
+  "description": "Barometric pressure history, forecast, trend alerts and reports for anywhere in the world.",
   "start_url": "./#/",
   "scope": "./",
   "display": "standalone",
@@ -14,7 +14,7 @@
     { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Pressure map", "url": "./#/map", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Reports", "url": "./#/report", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] },
     { "name": "World rankings", "url": "./#/world", "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }] }
   ]
 }

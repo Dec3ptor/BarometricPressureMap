@@ -6,7 +6,7 @@ import { PRESSURE_UNITS, fmtPressure, fmtDelta } from '../units.js';
 import { HOUR, valueAt, changeOver, tendency, level } from '../analysis.js';
 import { esc, icon, trendIcon, sparkline, placeHref } from '../ui.js';
 import { canInstall, promptInstall } from '../main.js';
-import { grid, createPressureLayer, addBaseLayers, PAST_H } from '../pressure-layer.js';
+import { grid, createPressureLayer, addBaseLayers, PAST_H, STATIC_MAP } from '../pressure-layer.js';
 import { loadWorld } from '../world-data.js';
 import { ADS, adSlot } from '../ads.js';
 
@@ -43,8 +43,7 @@ export async function render(main) {
       </div>
     </section>
     <section class="card home-map" aria-label="Pressure map preview">
-      <div class="hm-head"><div><div class="card-title">Pressure right now</div><div class="card-sub">Isobars, highs and lows${last ? ` around ${esc(last.name)}` : ''}</div></div>
-        <a class="btn btn-sm" href="#/map${last ? `?lat=${(+last.lat).toFixed(3)}&lon=${(+last.lon).toFixed(3)}&z=4` : ''}">${icon.map} Open map</a></div>
+      <div class="hm-head"><div><div class="card-title">Pressure right now</div><div class="card-sub">Isobars, highs and lows${last ? ` around ${esc(last.name)}` : ''}</div></div></div>
       <div class="home-map-el" id="hmap"></div>
     </section>
     </div>
@@ -70,7 +69,6 @@ export async function render(main) {
     <section class="explore">
     <h2 class="section-title">Explore</h2>
     <div class="quick-links">
-      <a class="quick-link" href="#/map"><span class="ql-icon">${icon.map}</span><span><strong>Live pressure map</strong><span>Isobars, highs and lows, wind, and a 4-day animation</span></span></a>
       <a class="quick-link" href="#/world"><span class="ql-icon">${icon.globe}</span><span><strong>World rankings</strong><span>Highest, lowest and fastest-changing pressure today</span></span></a>
       <a class="quick-link" href="#/report"><span class="ql-icon">${icon.doc}</span><span><strong>Conditions reports</strong><span>PDF or CSV for any place, day or time window</span></span></a>
       <a class="quick-link" href="#/learn"><span class="ql-icon">${icon.book}</span><span><strong>Understanding pressure</strong><span>What the numbers mean, plus a unit converter</span></span></a>
@@ -88,7 +86,7 @@ export async function render(main) {
     if (!canInstall()) return;
     const slot = main.querySelector('#install-slot');
     if (!slot) return;
-    slot.innerHTML = `<h2 class="section-title">Install</h2><div class="card install-card"><p>Add Pressure Map to your home screen for one-tap access. It opens like a native app.</p><button class="btn btn-primary" type="button">Install app</button></div>`;
+    slot.innerHTML = `<h2 class="section-title">Install</h2><div class="card install-card"><p>Add BaroCast to your home screen for one-tap access. It opens like a native app.</p><button class="btn btn-primary" type="button">Install app</button></div>`;
     slot.querySelector('button').onclick = async () => { if (await promptInstall()) slot.innerHTML = ''; };
   };
   showInstall();
@@ -157,7 +155,8 @@ function initMapPreview(main, last, favs, cleanups) {
   const el = main.querySelector('#hmap');
   if (!el || !el.offsetParent) return; // hidden on small screens
   const center = last || favs[0];
-  const map = L.map(el, { zoomControl: false, attributionControl: true, scrollWheelZoom: false, worldCopyJump: true, zoomSnap: 0.5 })
+  // A fixed view: one data load, no panning or zooming (keeps API use low).
+  const map = L.map(el, { ...STATIC_MAP, zoomSnap: 0.5 })
     .setView(center ? [center.lat, center.lon] : [35, 10], center ? 3.5 : 2);
   cleanups.push(addBaseLayers(map));
   const layer = createPressureLayer({ isobars: true, centers: true, cities: true, opacity: 0.6 }).addTo(map);
@@ -173,7 +172,7 @@ function initMapPreview(main, last, favs, cleanups) {
       layer.setField(field);
     } catch (e) { if (e.name !== 'AbortError') console.warn(e); }
   };
-  map.on('moveend', () => { clearTimeout(timer); timer = setTimeout(load, 450); });
+  map.on('resize', () => { clearTimeout(timer); timer = setTimeout(load, 450); });
   load();
   cleanups.push(() => { ctrl.abort(); clearTimeout(timer); map.remove(); });
 }

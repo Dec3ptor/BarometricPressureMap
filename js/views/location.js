@@ -9,7 +9,7 @@ import { esc, icon, trendIcon, toast, fmtClock, fmtHour, fmtDayFull, fmtWeekday,
 import { wxIcon, wxText } from '../wx.js';
 import { gaugeSVG, animateGauge } from '../gauge.js';
 import { createPressureChart } from '../charts.js';
-import { grid, createPressureLayer, addBaseLayers, PAST_H } from '../pressure-layer.js';
+import { grid, createPressureLayer, addBaseLayers, PAST_H, STATIC_MAP } from '../pressure-layer.js';
 import { adSlot } from '../ads.js';
 
 const RANGES = {
@@ -271,7 +271,6 @@ function buildView(main, place, data, cleanups) {
       <div class="card-head"><div><div class="card-title">Pressure map</div><div class="card-sub">Isobars around ${esc(place.name || 'this place')}</div></div></div>
       <div class="mini-map" id="minimap"><div class="skeleton" style="height:100%"></div></div>
       <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center">
-        <a class="btn btn-sm btn-primary" href="#/map?lat=${place.lat.toFixed(3)}&lon=${place.lon.toFixed(3)}&z=5">${icon.map} Open full map</a>
         <span class="muted small">Blue = high pressure, red = low. Lines join points of equal pressure.</span>
       </div>
     </section>
@@ -414,7 +413,8 @@ function buildView(main, place, data, cleanups) {
     if (!entries.some((en) => en.isIntersecting)) return;
     io.disconnect();
     mapEl.innerHTML = '';
-    map = L.map(mapEl, { zoomControl: true, attributionControl: true, scrollWheelZoom: false, worldCopyJump: true }).setView([place.lat, place.lon], 5);
+    // A fixed view: one data load, no panning or zooming (keeps API use low).
+    map = L.map(mapEl, STATIC_MAP).setView([place.lat, place.lon], 5);
     cleanups.push(addBaseLayers(map));
     const layer = createPressureLayer({ isobars: true, centers: true, cities: true }).addTo(map);
     L.marker([place.lat, place.lon], { icon: L.divIcon({ className: '', html: '<div class="me-marker"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }) }).addTo(map);
@@ -428,7 +428,7 @@ function buildView(main, place, data, cleanups) {
         layer.setField(field);
       } catch (e) { if (e.name !== 'AbortError') console.warn(e); }
     };
-    map.on('moveend', debounce(load, 450));
+    map.on('resize', debounce(load, 450));
     load();
   }, { rootMargin: '200px' });
   io.observe(mapEl);

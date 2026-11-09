@@ -467,7 +467,7 @@ export function createPressureLayer(opts = {}) {
       if (o.cities) drawCities(ctx, map, F, P, size, dark, halo, centers);
       drawCenters(ctx, centers, dark, halo);
 
-      // Let the page know what's on screen (used by the map side panel).
+      // Let the page know what's on screen (highs and lows found).
       const allCenters = o.centers ? centers : findCenters(map, F, P, size);
       this.fire('drawn', {
         t,
@@ -722,6 +722,20 @@ function drawCities(ctx, map, F, P, size, dark, halo, centers) {
 
 // ---------------------------------------------------------------------------
 // Base map helpers
+
+// Leaflet options for the fixed preview maps: no dragging or zooming, so a
+// map loads its pressure data once and the page scrolls normally over it.
+export const STATIC_MAP = {
+  zoomControl: false,
+  dragging: false,
+  touchZoom: false,
+  scrollWheelZoom: false,
+  doubleClickZoom: false,
+  boxZoom: false,
+  keyboard: false,
+  attributionControl: true,
+  worldCopyJump: true,
+};
 
 export function addBaseLayers(map) {
   // Esri's gray canvas basemaps: keyless, muted, and they come as separate
