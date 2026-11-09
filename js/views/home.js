@@ -8,6 +8,7 @@ import { esc, icon, trendIcon, sparkline, placeHref } from '../ui.js';
 import { canInstall, promptInstall } from '../main.js';
 import { grid, createPressureLayer, addBaseLayers, PAST_H } from '../pressure-layer.js';
 import { loadWorld } from '../world-data.js';
+import { ADS, adSlot } from '../ads.js';
 
 const STARTERS = [
   { name: 'London', region: 'England, United Kingdom', lat: 51.507, lon: -0.128 },
@@ -59,6 +60,8 @@ export async function render(main) {
 
     ${recents.length ? `<h2 class="section-title">Recent</h2><div class="place-cards${recents.length < 3 ? ' few' : ''}" data-group="recents">${recents.map(cardShell).join('')}</div>` : ''}
 
+    ${adSlot('banner', 'home-ad')}
+
     <div class="home-bottom">
     <section class="world-now" aria-label="World right now">
       <h2 class="section-title">World right now <a class="muted small" href="#/world" style="margin-left:auto">All rankings →</a></h2>
@@ -69,14 +72,16 @@ export async function render(main) {
     <div class="quick-links">
       <a class="quick-link" href="#/map"><span class="ql-icon">${icon.map}</span><span><strong>Live pressure map</strong><span>Isobars, highs and lows, wind, and a 4-day animation</span></span></a>
       <a class="quick-link" href="#/world"><span class="ql-icon">${icon.globe}</span><span><strong>World rankings</strong><span>Highest, lowest and fastest-changing pressure today</span></span></a>
+      <a class="quick-link" href="#/report"><span class="ql-icon">${icon.doc}</span><span><strong>Conditions reports</strong><span>PDF or CSV for any place, day or time window</span></span></a>
       <a class="quick-link" href="#/learn"><span class="ql-icon">${icon.book}</span><span><strong>Understanding pressure</strong><span>What the numbers mean, plus a unit converter</span></span></a>
     </div>
+    ${adSlot('box', 'home-adbox')}
     </section>
     </div>
 
     <div id="install-slot"></div>
 
-    <footer class="footer">Free and open source, with no ads and no tracking. Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.</footer>
+    <footer class="footer">${ADS.mode === 'adsense' ? 'Free to use, supported by ads.' : 'Free to use, with no tracking.'} Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.</footer>
   </div>`;
 
   const showInstall = () => {

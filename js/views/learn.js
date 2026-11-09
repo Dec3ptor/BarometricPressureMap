@@ -4,6 +4,7 @@ import { settings } from '../store.js';
 import { PRESSURE_UNITS, fmtPressure, toHpa } from '../units.js';
 import { LEVELS } from '../analysis.js';
 import { esc } from '../ui.js';
+import { ADS, adSlot } from '../ads.js';
 
 const SECTIONS = [
   ['what', 'What is it?'],
@@ -54,6 +55,8 @@ export async function render(main) {
         <p>As a rule of thumb, <strong>falling</strong> pressure signals clouds, wind and rain on the way, and <strong>rising</strong> pressure signals clearing, drier weather. A drop of 24 hPa or more in 24 hours (scaled for latitude) is called <em>bombogenesis</em>: a storm is deepening explosively. The location page warns you when the forecast shows one.</p>
         <div class="callout">Marine forecasts call a change under 0.1 hPa "steady". Computer models are smoother than real barometers, so this site treats anything under ${p(0.5)} in three hours as steady.</div>
 
+        ${adSlot('banner', 'learn-ad-inline')}
+
         <h2 id="station">Sea-level vs station pressure</h2>
         <p>Pressure falls as you climb, by roughly <strong>${p(12)} for every 100 m</strong> near sea level. In Denver, about 1,600 m up, the air pressure at the ground is typically only around ${p(835)}.</p>
         <p>To compare places fairly, weather services convert readings to what the pressure <em>would be</em> at sea level. That's <strong>sea-level pressure</strong> (MSLP). It's the default on this site and on every weather map.</p>
@@ -101,7 +104,7 @@ export async function render(main) {
         <ul>
           <li><strong>Data:</strong> forecasts and recent history come from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, which blends national weather-service models (ECMWF, NOAA GFS/HRRR, DWD ICON, Météo-France, JMA and others) and picks the best one for each location. "History" is model analysis from the past 14 days, not a station observation, so it can differ slightly from a nearby airport report.</li>
           <li><strong>Place search</strong> uses Open-Meteo's geocoder. "Use my location" asks your browser for your position, and <a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a> turns it into a place name.</li>
-          <li><strong>Privacy:</strong> no accounts, ads, cookies or analytics. Settings and favourites stay in your browser's local storage. The only things sent anywhere are the coordinates needed to fetch weather.</li>
+          <li><strong>Privacy:</strong> no accounts or analytics. Settings, favourites and report details stay in your browser's local storage. The weather services only receive the coordinates and dates needed to fetch data.${ADS.mode === 'adsense' ? ' This site shows ads from Google, which may use cookies to personalise ads. See <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">how Google uses data</a>.' : ''}</li>
           <li><strong>Install it:</strong> it's a Progressive Web App. On iPhone or iPad, tap Share, then <em>Add to Home Screen</em>. On Android, open the Chrome menu and tap <em>Install app</em>. On desktop Chrome or Edge, use the install icon in the address bar.</li>
           <li><strong>Limits:</strong> Open-Meteo's free tier allows about 10,000 requests per day per network. The map loads up to ~180 grid points per view and caches them for an hour, so normal use stays well within that. Very fast panning across the globe can briefly hit the per-minute limit. If that happens the map keeps showing cached data and catches up a minute later.</li>
         </ul>
@@ -130,6 +133,7 @@ export async function render(main) {
             <li><span>Very rapidly</span><span class="num">over ${p(6)}</span></li>
           </ul>
         </section>
+        ${adSlot('box')}
       </aside>
     </div>
     <footer class="footer">Map tiles © Esri, HERE, Garmin, © OpenStreetMap contributors. Weather data © Open-Meteo (CC BY 4.0).</footer>
@@ -144,10 +148,14 @@ export async function render(main) {
 
   const conv = main.querySelector('#converter');
   // The converter lives in the side column on wide screens, in the text otherwise.
-  const mq = matchMedia('(min-width: 1400px)');
-  const placeConv = () => (mq.matches ? main.querySelector('#conv-rail') : main.querySelector('#conv-slot')).appendChild(conv);
+  const rail = main.querySelector('.learn-rail');
+  const placeConv = () => {
+    const target = getComputedStyle(rail).display !== 'none' ? main.querySelector('#conv-rail') : main.querySelector('#conv-slot');
+    if (conv.parentElement !== target) target.appendChild(conv);
+  };
   placeConv();
-  mq.addEventListener('change', placeConv);
+  const ro = new ResizeObserver(placeConv);
+  ro.observe(main);
   conv.addEventListener('input', (e) => {
     const inp = e.target.closest('input');
     if (!inp) return;
@@ -156,5 +164,5 @@ export async function render(main) {
     const hpa = toHpa(v, inp.dataset.unit);
     conv.querySelectorAll('input').forEach((o) => { if (o !== inp) o.value = fmtPressure(hpa, o.dataset.unit); });
   });
-  return () => mq.removeEventListener('change', placeConv);
+  return () => ro.disconnect();
 }

@@ -131,6 +131,78 @@ function normalizeForecast(raw, lat, lon) {
 }
 
 // ---------------------------------------------------------------------------
+// Any date range (reports). Recent and future dates come from the forecast
+// API; older dates from the historical archive (ERA5 reanalysis, from 1940).
+// Dates are 'YYYY-MM-DD' local dates at the location.
+
+const ARCHIVE = 'https://archive-api.open-meteo.com/v1/archive';
+const RANGE_VARS = [
+  'pressure_msl', 'surface_pressure', 'temperature_2m', 'apparent_temperature', 'relative_humidity_2m',
+  'dew_point_2m', 'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m', 'precipitation',
+  'weather_code', 'cloud_cover',
+];
+const RANGE_KEYS = ['msl', 'sp', 'temp', 'feels', 'rh', 'dew', 'ws', 'wd', 'wg', 'pr', 'wc', 'cc'];
+export const RANGE_LIMITS = { earliest: '1940-01-01', forecastDays: 15, recentDays: 60, archiveLagDays: 6 };
+const rangeCache = new Map();
+
+export function isoDay(d) {
+  const z = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+}
+export function addDays(iso, n) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return t.toISOString().slice(0, 10);
+}
+
+export async function fetchRange(lat, lon, startDate, endDate) {
+  const key = `${round(lat, 3)},${round(lon, 3)},${startDate},${endDate}`;
+  if (rangeCache.has(key)) return rangeCache.get(key);
+  const today = isoDay(new Date());
+  const archiveEnd = addDays(today, -RANGE_LIMITS.archiveLagDays);
+  const segments = [];
+  if (startDate >= addDays(today, -RANGE_LIMITS.recentDays)) {
+    segments.push({ url: FORECAST, start: startDate, end: endDate, source: 'forecast' });
+  } else {
+    segments.push({ url: ARCHIVE, start: startDate, end: endDate < archiveEnd ? endDate : archiveEnd, source: 'archive' });
+    if (endDate > archiveEnd) segments.push({ url: FORECAST, start: addDays(archiveEnd, 1), end: endDate, source: 'forecast' });
+  }
+  const parts = await Promise.all(segments.map((sg) => getJson(`${sg.url}?${new URLSearchParams({
+    latitude: round(lat, 4),
+    longitude: round(lon, 4),
+    hourly: RANGE_VARS.join(','),
+    start_date: sg.start,
+    end_date: sg.end,
+    timezone: 'auto',
+    timeformat: 'unixtime',
+  })}`).then((raw) => ({ raw, source: sg.source }))));
+
+  const first = parts[0].raw;
+  const hourly = { time: [] };
+  RANGE_KEYS.forEach((k) => { hourly[k] = []; });
+  const seen = new Set();
+  for (const { raw } of parts) {
+    raw.hourly.time.forEach((t, i) => {
+      if (seen.has(t)) return;
+      seen.add(t);
+      hourly.time.push(t * 1000);
+      RANGE_VARS.forEach((v, j) => { hourly[RANGE_KEYS[j]].push(raw.hourly[v] ? raw.hourly[v][i] : null); });
+    });
+  }
+  const out = {
+    lat, lon,
+    gridLat: first.latitude, gridLon: first.longitude,
+    elevation: first.elevation,
+    timezone: first.timezone,
+    tzAbbr: first.timezone_abbreviation,
+    sources: [...new Set(parts.map((x) => x.source))],
+    hourly,
+  };
+  rangeCache.set(key, out);
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // Many locations at once (map grid, world rankings, favourites)
 
 let useHourWindow = true; // past_hours / forecast_hours; falls back to whole days if rejected

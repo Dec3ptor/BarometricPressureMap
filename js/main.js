@@ -4,6 +4,7 @@ import { settings, updateSettings, onSettingsChange, getRecents, getFavorites, c
 import { searchPlaces, parseCoords, getPosition, reverseGeocode, coordName } from './api.js';
 import { PRESSURE_UNITS } from './units.js';
 import { $, $$, esc, toast, placeHref } from './ui.js';
+import { adsOn, adSlot, fillAds } from './ads.js';
 
 const routes = {
   '': () => import('./views/home.js'),
@@ -11,6 +12,7 @@ const routes = {
   map: () => import('./views/map.js'),
   world: () => import('./views/world.js'),
   learn: () => import('./views/learn.js'),
+  report: () => import('./views/report.js'),
 };
 
 const main = $('#main');
@@ -39,6 +41,7 @@ async function render({ keepScroll = false } = {}) {
     main.innerHTML = '';
     cleanup = await mod.render(main, params, { isActive: () => token === renderToken });
     if (keepScroll) window.scrollTo(0, scrollY); else window.scrollTo(0, 0);
+    fillAds(document);
   } catch (err) {
     console.error(err);
     main.innerHTML = `<div class="page"><div class="card error-card"><h2>Something went wrong</h2><p>${esc(err.message || err)}</p><a class="btn" href="#/">Back home</a></div></div>`;
@@ -258,6 +261,16 @@ export async function promptInstall() {
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
+// ---------- Ads ----------
+
+if (adsOn()) {
+  document.body.classList.add('ads-on');
+  $$('.ad-side').forEach((el) => { el.innerHTML = adSlot('rail'); });
+  // Slots that only appear at some widths are filled when they become visible.
+  let t;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => fillAds(document), 400); });
 }
 
 // ---------- Boot ----------

@@ -7,6 +7,7 @@ import { CITIES } from '../cities.js';
 import { esc, relTime, placeHref } from '../ui.js';
 import { addBaseLayers, pressureColor } from '../pressure-layer.js';
 import { loadWorld } from '../world-data.js';
+import { adSlot } from '../ads.js';
 
 export async function render(main, params, { isActive }) {
   main.innerHTML = `<div class="page page-wide">
@@ -18,6 +19,7 @@ export async function render(main, params, { isActive }) {
       <section class="card w-map"><div class="world-map" id="wmap"></div>
         <div class="chart-caption" id="wmeta"><span class="spinner"></span> Loading live data…</div>
       </section>
+      ${adSlot('banner', 'w-ad')}
       <section class="w-leaders" aria-label="Leaderboards">
         <h2 class="section-title w-leaders-title">Leaderboards</h2>
         <div class="leader-grid" id="leaders">${Array.from({ length: 6 }, () => '<div class="card"><div class="skeleton" style="height:260px"></div></div>').join('')}</div>
@@ -35,7 +37,7 @@ export async function render(main, params, { isActive }) {
   </div>`;
 
   // Map
-  const wide = window.innerWidth >= 1280;
+  const wide = main.clientWidth >= 1320;
   const map = L.map(main.querySelector('#wmap'), { worldCopyJump: true, minZoom: 1, scrollWheelZoom: false, zoomSnap: 0.5 })
     .setView([25, 10], window.innerWidth < 640 ? 1 : wide ? 2 : 2);
   const unbase = addBaseLayers(map);

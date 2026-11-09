@@ -2,6 +2,7 @@
 
 import { grid, createPressureLayer, addBaseLayers, sampleAt, legendGradient, pressureColor, LEGEND_RANGE, PAST_H, FUTURE_H } from '../pressure-layer.js';
 import { CITIES } from '../cities.js';
+import { adSlot } from '../ads.js';
 import { settings, getLastPlace } from '../store.js';
 import { PRESSURE_UNITS, convertPressure, fmtPressure, fmtDelta, fmtWind, compass } from '../units.js';
 import { getPosition, coordName } from '../api.js';
@@ -61,6 +62,7 @@ export async function render(main, params) {
       <div class="ms-section-title">Cities <span class="muted">sea-level pressure · 3 h change</span></div>
       <ul class="ms-list ms-cities"></ul>
       <p class="ms-foot muted">Tap a row to fly there. Tap anywhere on the map for a reading.</p>
+      ${adSlot('box', 'ms-ad')}
     </aside>
   </div>`;
 

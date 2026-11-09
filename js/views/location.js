@@ -10,6 +10,7 @@ import { wxIcon, wxText } from '../wx.js';
 import { gaugeSVG, animateGauge } from '../gauge.js';
 import { createPressureChart } from '../charts.js';
 import { grid, createPressureLayer, addBaseLayers, PAST_H } from '../pressure-layer.js';
+import { adSlot } from '../ads.js';
 
 const RANGES = {
   '3d': { label: '3 days', back: 1, fwd: 2 },
@@ -146,6 +147,7 @@ function buildView(main, place, data, cleanups) {
       </div>
       <div class="loc-actions">
         <button class="icon-btn fav-btn" type="button" aria-pressed="${fav}" aria-label="${fav ? 'Remove from' : 'Add to'} favourites" title="Favourite">${icon.star}</button>
+        <a class="btn btn-sm report-btn" href="#/report?lat=${place.lat.toFixed(4)}&lon=${place.lon.toFixed(4)}&name=${encodeURIComponent(place.name || '')}${place.region ? `&region=${encodeURIComponent(place.region)}` : ''}" title="Create a PDF report for a date or time window">${icon.doc} Report</a>
         <button class="icon-btn" type="button" data-share aria-label="Share" title="Share">${icon.share}</button>
         <button class="icon-btn" type="button" data-refresh aria-label="Refresh" title="Refresh">${icon.refresh}</button>
       </div>
@@ -218,6 +220,8 @@ function buildView(main, place, data, cleanups) {
       </div>
     </section>
 
+    ${adSlot('banner', 'dash-ad1')}
+
     <section class="dash-outlook" aria-label="Outlook">
     <h2 class="section-title" style="margin-top:8px">Outlook</h2>
     <div class="outlook-grid">
@@ -260,6 +264,9 @@ function buildView(main, place, data, cleanups) {
       </div>
     </section>
 
+    ${adSlot('banner', 'dash-ad2')}
+
+    <div class="dash-side">
     <section class="card dash-map" aria-label="Pressure map">
       <div class="card-head"><div><div class="card-title">Pressure map</div><div class="card-sub">Isobars around ${esc(place.name || 'this place')}</div></div></div>
       <div class="mini-map" id="minimap"><div class="skeleton" style="height:100%"></div></div>
@@ -268,6 +275,8 @@ function buildView(main, place, data, cleanups) {
         <span class="muted small">Blue = high pressure, red = low. Lines join points of equal pressure.</span>
       </div>
     </section>
+    ${adSlot('box', 'dash-adbox')}
+    </div>
     </div>
 
     <footer class="footer">Weather data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (national weather service models), updated hourly. Times shown in ${esc(tz)}.</footer>
