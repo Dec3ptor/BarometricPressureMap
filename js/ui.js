@@ -96,6 +96,9 @@ export const icon = {
   pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4" width="4.5" height="16" rx="1"/><rect x="14" y="4" width="4.5" height="16" rx="1"/></svg>',
   layers: S('<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>'),
   close: S('<path d="M6 6l12 12M18 6 6 18"/>'),
+  doc: S('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>'),
+  download: S('<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>'),
+  printer: S('<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>'),
   plus: S('<path d="M12 5v14M5 12h14"/>'),
 };
 
