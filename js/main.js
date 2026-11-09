@@ -226,7 +226,7 @@ function renderSettings() {
     <div class="setting"><span class="setting-label">Rainfall</span>${seg('precipUnit', [['mm', 'mm'], ['in', 'inches']], settings.precipUnit)}</div>
     <div class="setting"><span class="setting-label">Clock</span>${seg('hour12', [['false', '24-hour'], ['true', '12-hour']], settings.hour12)}</div>
     <div class="setting"><span class="setting-label">Theme</span>${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], settings.theme)}</div>
-    <div class="setting"><p class="setting-help" style="margin:0">Settings, favourites and recent places are stored only in this browser.</p></div>`;
+    <div class="setting"><p class="setting-help" style="margin:0">Settings, favourites and recent places are stored only in this browser. <a href="privacy.html">Privacy policy</a></p></div>`;
 }
 function openSettings() {
   renderSettings();

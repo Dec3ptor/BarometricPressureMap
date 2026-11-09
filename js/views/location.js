@@ -279,7 +279,7 @@ function buildView(main, place, data, cleanups) {
     </div>
     </div>
 
-    <footer class="footer">Weather data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (national weather service models), updated hourly. Times shown in ${esc(tz)}.</footer>
+    <footer class="footer">Weather data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (national weather service models), updated hourly. Times shown in ${esc(tz)}. · <a href="privacy.html">Privacy</a></footer>
   </div>`;
 
   animateGauge(main);

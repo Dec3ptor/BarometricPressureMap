@@ -103,6 +103,7 @@ export async function render(main, params) {
       </section>
     </div>
     ${adSlot('banner', 'report-ad')}
+    <footer class="footer">Data from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) · <a href="privacy.html">Privacy</a></footer>
   </div>`;
 
   const $ = (s) => main.querySelector(s);

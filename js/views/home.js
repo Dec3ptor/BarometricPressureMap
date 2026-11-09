@@ -81,7 +81,7 @@ export async function render(main) {
 
     <div id="install-slot"></div>
 
-    <footer class="footer">${ADS.mode === 'adsense' ? 'Free to use, supported by ads.' : 'Free to use, with no tracking.'} Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>.</footer>
+    <footer class="footer">${ADS.mode === 'adsense' ? 'Free to use, supported by ads.' : 'Free to use, with no tracking.'} Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. · <a href="privacy.html">Privacy</a></footer>
   </div>`;
 
   const showInstall = () => {

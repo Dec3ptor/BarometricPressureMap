@@ -104,7 +104,7 @@ export async function render(main) {
         <ul>
           <li><strong>Data:</strong> forecasts and recent history come from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, which blends national weather-service models (ECMWF, NOAA GFS/HRRR, DWD ICON, Météo-France, JMA and others) and picks the best one for each location. "History" is model analysis from the past 14 days, not a station observation, so it can differ slightly from a nearby airport report.</li>
           <li><strong>Place search</strong> uses Open-Meteo's geocoder. "Use my location" asks your browser for your position, and <a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a> turns it into a place name.</li>
-          <li><strong>Privacy:</strong> no accounts or analytics. Settings, favourites and report details stay in your browser's local storage. The weather services only receive the coordinates and dates needed to fetch data.${ADS.mode === 'adsense' ? ' This site shows ads from Google, which may use cookies to personalise ads. See <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">how Google uses data</a>.' : ''}</li>
+          <li><strong>Privacy:</strong> no accounts or analytics. Settings, favourites and report details stay in your browser's local storage. The weather services only receive the coordinates and dates needed to fetch data.${ADS.mode === 'adsense' ? ' This site shows ads from Google, which may use cookies to personalise ads. See <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">how Google uses data</a>.' : ''} Full details are in the <a href="privacy.html">privacy policy</a>.</li>
           <li><strong>Install it:</strong> it's a Progressive Web App. On iPhone or iPad, tap Share, then <em>Add to Home Screen</em>. On Android, open the Chrome menu and tap <em>Install app</em>. On desktop Chrome or Edge, use the install icon in the address bar.</li>
           <li><strong>Limits:</strong> Open-Meteo's free tier allows about 10,000 requests per day per network. The map loads up to ~180 grid points per view and caches them for an hour, so normal use stays well within that. Very fast panning across the globe can briefly hit the per-minute limit. If that happens the map keeps showing cached data and catches up a minute later.</li>
         </ul>
@@ -136,7 +136,7 @@ export async function render(main) {
         ${adSlot('box')}
       </aside>
     </div>
-    <footer class="footer">Map tiles © Esri, HERE, Garmin, © OpenStreetMap contributors. Weather data © Open-Meteo (CC BY 4.0).</footer>
+    <footer class="footer">Map tiles © Esri, HERE, Garmin, © OpenStreetMap contributors. Weather data © Open-Meteo (CC BY 4.0). · <a href="privacy.html">Privacy</a></footer>
   </div>`;
 
   main.querySelector('.learn-toc').addEventListener('click', (e) => {
